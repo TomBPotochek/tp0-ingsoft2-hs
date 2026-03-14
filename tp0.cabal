@@ -38,7 +38,7 @@ library
     , servant-server
     , wai
     , warp
-  default-language: Haskell2010
+  default-language: GHC2024
 
 executable tp0
   main-is: Main.hs
@@ -56,7 +56,7 @@ executable tp0
     , tp0
     , wai
     , warp
-  default-language: Haskell2010
+  default-language: GHC2024
 
 test-suite tp0-test
   type: exitcode-stdio-1.0
@@ -75,4 +75,4 @@ test-suite tp0-test
     , tp0
     , wai
     , warp
-  default-language: Haskell2010
+  default-language: GHC2024
