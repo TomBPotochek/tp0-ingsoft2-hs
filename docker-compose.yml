@@ -1,0 +1,11 @@
+services:
+    tp0:
+        build: .
+        image: tp0
+    nginx:
+        build: ./nginx
+        image: nginx
+        ports:
+            - "8080:80"
+        depends_on:
+            - tp0
