@@ -3,7 +3,5 @@
 .stack-work
 .dist-newstyle
 *.log
-README.md
 CHANGELOG.md
-test/
 nginx/

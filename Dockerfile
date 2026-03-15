@@ -10,6 +10,9 @@ RUN stack build --dependencies-only
 COPY . .
 RUN stack build --copy-bins --local-bin-path /out
 
+FROM builder AS tester
+CMD ["stack", "test"]
+
 FROM debian:bookworm-slim AS runtime
 
 # Runtime shared libraries needed by GHC-compiled executables.

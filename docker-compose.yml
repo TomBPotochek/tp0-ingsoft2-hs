@@ -2,6 +2,10 @@ services:
     tp0:
         build: .
         image: tp0
+    test:
+        build:
+            context: .
+            target: tester
     nginx:
         build: ./nginx
         image: nginx
