@@ -1,15 +1,74 @@
 services:
-    tp0:
+    app:
         build: .
         image: tp0
-    test:
+        ports:
+            - "8080:1234"
+        environment:
+            DATABASE_URL: postgresql://app_user:app_pass@postgres:5432/app_db
+        depends_on:
+            postgres:
+                condition: service_healthy
+
+    unit-tests:
         build:
             context: .
             target: tester
-    nginx:
-        build: ./nginx
-        image: nginx
-        ports:
-            - "8080:80"
+        environment:
+            DATABASE_URL: postgresql://app_user:app_pass@postgres:5432/app_db
         depends_on:
-            - tp0
+            postgres:
+                condition: service_healthy
+        profiles: ["test"]
+
+    e2e-tests:
+        image: curlimages/curl:8.12.1
+        depends_on:
+            app-e2e:
+                condition: service_started
+        command:
+            - "sh"
+            - "-c"
+            - |
+                curl -fsS http://app-e2e:1234/users
+        profiles: ["e2e"]
+
+    app-e2e:
+        build: .
+        image: tp0
+        environment:
+            DATABASE_URL: postgresql://e2e_user:e2e_pass@postgres-e2e:5432/e2e_db
+        depends_on:
+            postgres-e2e:
+                condition: service_healthy
+        profiles: ["e2e"]
+
+    postgres:
+        image: postgres:16
+        environment:
+            POSTGRES_USER: app_user
+            POSTGRES_PASSWORD: app_pass
+            POSTGRES_DB: app_db
+        volumes:
+            - postgres_app_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U app_user -d app_db"]
+            interval: 5s
+            timeout: 3s
+            retries: 20
+
+    postgres-e2e:
+        image: postgres:16
+        environment:
+            POSTGRES_USER: e2e_user
+            POSTGRES_PASSWORD: e2e_pass
+            POSTGRES_DB: e2e_db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U e2e_user -d e2e_db"]
+            interval: 5s
+            timeout: 3s
+            retries: 20
+        profiles: ["e2e"]
+
+volumes:
+    postgres_app_data:
