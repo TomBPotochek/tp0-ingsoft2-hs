@@ -23,6 +23,7 @@ services:
 
     e2e-tests:
         image: curlimages/curl:8.12.1
+        networks: [e2e]
         depends_on:
             app-e2e:
                 condition: service_started
@@ -36,6 +37,7 @@ services:
     app-e2e:
         build: .
         image: tp0
+        networks: [e2e]
         environment:
             DATABASE_URL: postgresql://e2e_user:e2e_pass@postgres-e2e:5432/e2e_db
         depends_on:
@@ -59,6 +61,7 @@ services:
 
     postgres-e2e:
         image: postgres:16
+        networks: [e2e]
         environment:
             POSTGRES_USER: e2e_user
             POSTGRES_PASSWORD: e2e_pass
@@ -72,3 +75,6 @@ services:
 
 volumes:
     postgres_app_data:
+
+networks:
+    e2e:
