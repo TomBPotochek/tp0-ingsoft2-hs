@@ -11,11 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy only dependency manifests first so Docker can cache dependency builds.
 COPY stack.yaml package.yaml tp0.cabal ./
-RUN stack build --dependencies-only
+RUN --mount=type=cache,target=/root/.stack \
+    stack build --dependencies-only
 
 # Copy the rest of the source after dependencies are cached.
 COPY . .
-RUN stack build --copy-bins --local-bin-path /out
+RUN --mount=type=cache,target=/root/.stack \
+    stack build --copy-bins --local-bin-path /out
 
 FROM builder AS tester
 CMD ["stack", "test"]
