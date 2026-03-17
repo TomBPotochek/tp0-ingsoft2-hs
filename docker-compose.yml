@@ -40,6 +40,7 @@ services:
         networks: [e2e]
         environment:
             DATABASE_URL: postgresql://e2e_user:e2e_pass@postgres-e2e:5432/e2e_db
+            ENVIRONMENT: development
         depends_on:
             postgres-e2e:
                 condition: service_healthy

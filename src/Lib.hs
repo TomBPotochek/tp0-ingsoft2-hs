@@ -19,14 +19,20 @@ import System.Exit (die)
 
 import API.DTO.User (toDTO)
 import API.Routes (API, api)
-import App.Effects.UserRepository (UserRepository, getUsers, runUserRepositoryDb)
+import App.Effects.UserRepository (UserRepository, getUsers)
 import Infra.Persistence.Models (migrateAll)
+import Infra.Persistence.Seed (seedDb)
+import Infra.Persistence.UserRepository (runUserRepositoryDb)
 
 startApp :: IO ()
 startApp = do
   connStr <- getConnectionString
   pool <- runNoLoggingT $ createPostgresqlPool connStr 10
   runNoLoggingT $ runSqlPool (runMigration migrateAll) pool
+  shouldSeed <- lookupEnv "ENVIRONMENT"
+  case shouldSeed of
+    Just "development" -> seedDb pool
+    _                  -> pure ()
   run 1234 (app pool)
 
 app :: ConnectionPool -> Application

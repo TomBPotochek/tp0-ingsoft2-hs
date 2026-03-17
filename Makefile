@@ -10,7 +10,7 @@ unit:
 	docker compose --profile test run --rm unit-tests
 
 e2e:
-	docker compose --profile e2e up --abort-on-container-exit --exit-code-from e2e-tests e2e-tests
+	docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e-tests e2e-tests
 
 down:
 	docker compose down

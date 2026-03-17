@@ -50,12 +50,14 @@ default-extensions:
 library:
   exposed-modules:
   - Lib
+  - App.Effects.UserRepository
+  - Infra.Persistence.Models
+  - Infra.Persistence.Seed
   other-modules:
   - API.DTO.User
   - API.Routes
-  - App.Effects.UserRepository
   - Domain.User
-  - Infra.Persistence.Models
+  - Infra.Persistence.UserRepository
   source-dirs: src
 
 executables:
