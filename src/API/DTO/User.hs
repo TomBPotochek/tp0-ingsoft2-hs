@@ -5,7 +5,7 @@ module API.DTO.User
     , toDTO
     ) where
 
-import Data.Aeson (ToJSON)
+import Data.Aeson (FromJSON, ToJSON)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
@@ -19,6 +19,7 @@ data UserDTO = UserDTO
   } deriving (Eq, Show, Generic)
 
 instance ToJSON UserDTO
+instance FromJSON UserDTO
 
 toDTO :: User -> UserDTO
 toDTO user =

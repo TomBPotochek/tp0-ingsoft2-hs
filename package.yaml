@@ -21,7 +21,10 @@ description:         Please see the README on GitHub at <https://github.com/TomB
 dependencies:
 - base >=4.7 && <5
 - aeson
+- http-client
+- http-client-tls
 - text
+- servant-client
 - servant-server
 - wai
 - warp
@@ -50,12 +53,12 @@ default-extensions:
 library:
   exposed-modules:
   - Lib
+  - API.DTO.User
+  - API.Routes
   - App.Effects.UserRepository
   - Infra.Persistence.Models
   - Infra.Persistence.Seed
   other-modules:
-  - API.DTO.User
-  - API.Routes
   - Domain.User
   - Infra.Persistence.UserRepository
   source-dirs: src
@@ -70,6 +73,21 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - base
+    - tp0
+
+  tp0-e2e:
+    main:                Main.hs
+    source-dirs:         test-e2e
+    other-modules:
+    - E2E.Support
+    - E2E.UsersSpec
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - hspec
     - tp0
 
 tests:

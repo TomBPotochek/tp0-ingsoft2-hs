@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 
 # Copy only dependency manifests first so Docker can cache dependency builds.
-COPY stack.yaml package.yaml tp0.cabal ./
+COPY stack.yaml package.yaml ./
 RUN --mount=type=cache,target=/root/.stack \
     stack build --dependencies-only
 
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.stack \
 FROM builder AS tester
 CMD ["stack", "test"]
 
-FROM debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim AS runtime-base
 
 # Runtime shared libraries needed by GHC-compiled executables.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,8 +32,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	libpq5 \
 	&& rm -rf /var/lib/apt/lists/*
 
+FROM runtime-base AS runtime-app
+
 WORKDIR /app
 COPY --from=builder /out/tp0 /usr/local/bin/tp0
 
 EXPOSE 1234
 ENTRYPOINT ["/usr/local/bin/tp0"]
+
+FROM runtime-base AS runtime-e2e
+
+WORKDIR /app
+COPY --from=builder /out/tp0-e2e /usr/local/bin/tp0-e2e
+
+ENTRYPOINT ["/usr/local/bin/tp0-e2e"]

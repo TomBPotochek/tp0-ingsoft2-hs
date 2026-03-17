@@ -25,12 +25,12 @@ source-repository head
 library
   exposed-modules:
       Lib
+      API.DTO.User
+      API.Routes
       App.Effects.UserRepository
       Infra.Persistence.Models
       Infra.Persistence.Seed
   other-modules:
-      API.DTO.User
-      API.Routes
       Domain.User
       Infra.Persistence.UserRepository
   hs-source-dirs:
@@ -41,11 +41,14 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , http-client
+    , http-client-tls
     , monad-logger
     , persistent
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , servant-client
     , servant-server
     , text
     , wai
@@ -66,11 +69,43 @@ executable tp0
   build-depends:
       aeson
     , base
+    , http-client
+    , http-client-tls
     , monad-logger
     , persistent
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , servant-client
+    , servant-server
+    , text
+    , tp0
+    , wai
+    , warp
+  default-language: GHC2024
+
+executable tp0-e2e
+  main-is: Main.hs
+  other-modules:
+      E2E.Support
+      E2E.UsersSpec
+  hs-source-dirs:
+      test-e2e
+  default-extensions:
+      TypeApplications
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base
+    , hspec
+    , http-client
+    , http-client-tls
+    , monad-logger
+    , persistent
+    , persistent-postgresql
+    , persistent-template
+    , polysemy
+    , servant-client
     , servant-server
     , text
     , tp0
@@ -93,11 +128,14 @@ test-suite tp0-test
   build-depends:
       aeson
     , base
+    , http-client
+    , http-client-tls
     , monad-logger
     , persistent
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , servant-client
     , servant-server
     , text
     , tp0

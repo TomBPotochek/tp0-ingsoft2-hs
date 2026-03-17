@@ -22,20 +22,23 @@ services:
         profiles: ["test"]
 
     e2e-tests:
-        image: curlimages/curl:8.12.1
+        build:
+            context: .
+            target: runtime-e2e
+        image: tp0-e2e
         networks: [e2e]
         depends_on:
             app-e2e:
                 condition: service_started
-        command:
-            - "sh"
-            - "-c"
-            - |
-                curl -fsS http://app-e2e:1234/users
+        environment:
+            E2E_HOST: app-e2e
+            E2E_PORT: "1234"
         profiles: ["e2e"]
 
     app-e2e:
-        build: .
+        build:
+            context: .
+            target: runtime-app
         image: tp0
         networks: [e2e]
         environment:
