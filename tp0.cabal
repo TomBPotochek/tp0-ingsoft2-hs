@@ -26,16 +26,26 @@ library
   exposed-modules:
       Lib
   other-modules:
-      Paths_tp0
-  autogen-modules:
-      Paths_tp0
+      API.DTO.User
+      API.Routes
+      App.Effects.UserRepository
+      Domain.User
+      Infra.Persistence.Models
   hs-source-dirs:
       src
+  default-extensions:
+      TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
     , base >=4.7 && <5
+    , monad-logger
+    , persistent
+    , persistent-postgresql
+    , persistent-template
+    , polysemy
     , servant-server
+    , text
     , wai
     , warp
   default-language: GHC2024
@@ -48,11 +58,19 @@ executable tp0
       Paths_tp0
   hs-source-dirs:
       app
+  default-extensions:
+      TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , base
+    , monad-logger
+    , persistent
+    , persistent-postgresql
+    , persistent-template
+    , polysemy
     , servant-server
+    , text
     , tp0
     , wai
     , warp
@@ -67,11 +85,19 @@ test-suite tp0-test
       Paths_tp0
   hs-source-dirs:
       test
+  default-extensions:
+      TypeApplications
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , base
+    , monad-logger
+    , persistent
+    , persistent-postgresql
+    , persistent-template
+    , polysemy
     , servant-server
+    , text
     , tp0
     , wai
     , warp

@@ -1,40 +1,51 @@
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
+{-# LANGUAGE DataKinds #-}
 module Lib
     ( startApp
     ) where
 
-import Data.Aeson
-import Data.Aeson.TH
+import Control.Monad.Logger (runNoLoggingT)
+import Control.Monad.IO.Class (liftIO)
+import Data.String (fromString)
+import Database.Persist.Postgresql (ConnectionString, createPostgresqlPool)
+import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
 import Network.Wai
 import Network.Wai.Handler.Warp
-import Servant
+import Polysemy (Embed, Sem)
+import Polysemy (runM)
+import Polysemy.Reader (Reader, runReader)
+import Servant (Handler, ServerT, hoistServer, serve)
+import System.Environment (lookupEnv)
+import System.Exit (die)
 
-data User = User
-  { userId        :: Int
-  , userFirstName :: String
-  , userLastName  :: String
-  } deriving (Eq, Show)
-
-$(deriveJSON defaultOptions ''User)
-
-type API = "users" :> Get '[JSON] [User]
+import API.DTO.User (toDTO)
+import API.Routes (API, api)
+import App.Effects.UserRepository (UserRepository, getUsers, runUserRepositoryDb)
+import Infra.Persistence.Models (migrateAll)
 
 startApp :: IO ()
-startApp = run 1234 app
+startApp = do
+  connStr <- getConnectionString
+  pool <- runNoLoggingT $ createPostgresqlPool connStr 10
+  runNoLoggingT $ runSqlPool (runMigration migrateAll) pool
+  run 1234 (app pool)
 
-app :: Application
-app = serve api server
+app :: ConnectionPool -> Application
+app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 
-api :: Proxy API
-api = Proxy
+type AppEffects = '[UserRepository, Reader ConnectionPool, Embed IO]
 
-server :: Server API
-server = return users
+serverSem :: ServerT API (Sem AppEffects)
+serverSem = do
+  users <- getUsers
+  pure (toDTO <$> users)
 
-users :: [User]
-users = [ User 1 "Isaac" "Newton"
-        , User 2 "Albert" "Einstein"
-        , User 3 "Stephen" "Hawking"
-        ]
+semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
+semToHandler pool sem =
+  liftIO $ runM (runReader pool (runUserRepositoryDb sem))
+
+getConnectionString :: IO ConnectionString
+getConnectionString = do
+  value <- lookupEnv "DATABASE_URL"
+  case value of
+    Just url -> pure (fromString url)
+    Nothing -> die "Missing required environment variable: DATABASE_URL"

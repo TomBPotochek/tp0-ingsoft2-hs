@@ -1,6 +1,13 @@
-FROM haskell:9.10.3 AS builder
+FROM haskell:9.10.3-bookworm AS builder
 
 WORKDIR /app/user
+
+# Needed at build time for postgresql-libpq-configure (pg_config)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
 
 # Copy only dependency manifests first so Docker can cache dependency builds.
 COPY stack.yaml package.yaml tp0.cabal ./
@@ -20,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	ca-certificates \
 	libgmp10 \
 	libffi8 \
+	libpq5 \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

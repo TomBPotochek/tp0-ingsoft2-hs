@@ -21,9 +21,15 @@ description:         Please see the README on GitHub at <https://github.com/TomB
 dependencies:
 - base >=4.7 && <5
 - aeson
+- text
 - servant-server
 - wai
 - warp
+- polysemy
+- persistent
+- persistent-template
+- persistent-postgresql
+- monad-logger
 
 language: GHC2024
 
@@ -38,7 +44,18 @@ ghc-options:
 - -Wpartial-fields
 - -Wredundant-constraints
 
+default-extensions:
+- TypeApplications
+
 library:
+  exposed-modules:
+  - Lib
+  other-modules:
+  - API.DTO.User
+  - API.Routes
+  - App.Effects.UserRepository
+  - Domain.User
+  - Infra.Persistence.Models
   source-dirs: src
 
 executables:
