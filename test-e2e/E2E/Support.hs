@@ -25,5 +25,5 @@ retryClient retries env action = go retries
             Left err
                 | attemptsLeft <= 1 -> pure (Left (show err))
                 | otherwise -> do
-                    threadDelay 500000
+                    threadDelay 500_000
                     go (attemptsLeft - 1)

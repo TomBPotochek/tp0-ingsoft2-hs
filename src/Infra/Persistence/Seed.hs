@@ -1,21 +1,19 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Infra.Persistence.Seed
     ( seedDb
     ) where
 
-import Database.Persist (Filter)
-import Database.Persist.Sql (ConnectionPool, deleteWhere, insertMany_, runSqlPool)
-import Infra.Persistence.Models (UserEntity (..))
+import Data.Time (getCurrentTime, UTCTime)
+import Database.Persist.Sql (ConnectionPool, insertMany_, runSqlPool)
+import Infra.Persistence.Models (ProductEntity (..))
 
 seedDb :: ConnectionPool -> IO ()
 seedDb pool = do
-    runSqlPool (deleteWhere ([] :: [Filter UserEntity])) pool
-    runSqlPool (insertMany_ seedUsers) pool
+    now <- getCurrentTime
+    runSqlPool (insertMany_ (seedProducts now)) pool
 
-seedUsers :: [UserEntity]
-seedUsers =
-    [ UserEntity "Ada" "Lovelace"
-    , UserEntity "Alan" "Turing"
-    , UserEntity "Grace" "Hopper"
+seedProducts :: UTCTime -> [ProductEntity]
+seedProducts now =
+    [ ProductEntity 1 "Mechanical Keyboard" "75% layout, tactile switches" 129.99 now now
+    , ProductEntity 1 "Wireless Mouse"       "Ergonomic, 3000 DPI"         49.99  now now
+    , ProductEntity 2 "USB-C Hub"            "7-in-1 multiport adapter"    35.00  now now
     ]

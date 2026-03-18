@@ -6,11 +6,11 @@ module API.Routes
     , api
     ) where
 
-import Servant (Get, JSON, Proxy(..), (:>))
+import Servant (JSON, Post, Proxy(..), ReqBody, (:>))
 
-import API.DTO.User (UserDTO)
+import API.DTO.Product (CreateProductRequest, ProductDTO)
 
-type API = "users" :> Get '[JSON] [UserDTO]
+type API = "products" :> ReqBody '[JSON] CreateProductRequest :> Post '[JSON] ProductDTO
 
 api :: Proxy API
 api = Proxy

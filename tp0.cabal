@@ -25,18 +25,20 @@ source-repository head
 library
   exposed-modules:
       Lib
-      API.DTO.User
+      API.DTO.Product
       API.Routes
-      App.Effects.UserRepository
+      App.Effects.ProductRepository
+      Domain.Product
       Infra.Persistence.Models
       Infra.Persistence.Seed
   other-modules:
-      Domain.User
-      Infra.Persistence.UserRepository
+      App.ProductCreation
+      Infra.Persistence.ProductRepository
   hs-source-dirs:
       src
   default-extensions:
       TypeApplications
+      NumericUnderscores
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
@@ -51,6 +53,7 @@ library
     , servant-client
     , servant-server
     , text
+    , time
     , wai
     , warp
   default-language: GHC2024
@@ -65,6 +68,7 @@ executable tp0
       app
   default-extensions:
       TypeApplications
+      NumericUnderscores
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -79,6 +83,7 @@ executable tp0
     , servant-client
     , servant-server
     , text
+    , time
     , tp0
     , wai
     , warp
@@ -88,11 +93,12 @@ executable tp0-e2e
   main-is: Main.hs
   other-modules:
       E2E.Support
-      E2E.UsersSpec
+      E2E.ProductsSpec
   hs-source-dirs:
       test-e2e
   default-extensions:
       TypeApplications
+      NumericUnderscores
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -108,6 +114,7 @@ executable tp0-e2e
     , servant-client
     , servant-server
     , text
+    , time
     , tp0
     , wai
     , warp
@@ -115,19 +122,19 @@ executable tp0-e2e
 
 test-suite tp0-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
-      Paths_tp0
-  autogen-modules:
-      Paths_tp0
+      API.DTO.ProductSpec
   hs-source-dirs:
       test
   default-extensions:
       TypeApplications
+      NumericUnderscores
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
     , base
+    , hspec
     , http-client
     , http-client-tls
     , monad-logger
@@ -138,6 +145,7 @@ test-suite tp0-test
     , servant-client
     , servant-server
     , text
+    , time
     , tp0
     , wai
     , warp

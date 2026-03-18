@@ -8,31 +8,38 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 module Infra.Persistence.Models
-    ( UserEntity(..)
-    , UserEntityId
+    ( ProductEntity(..)
+    , ProductEntityId
     , migrateAll
-    , toDomainUser
+    , fromProductEntity
     ) where
 
-import Data.Text (Text)
-import Database.Persist (Entity(..))
+import Data.Time (UTCTime)
 import Database.Persist.Sql (fromSqlKey)
 import Database.Persist.TH
 
-import Domain.User (User(..), UserId(..))
+import Domain.Product (Product(..))
 
 -- Persistent schema (Postgres backend will use these entities).
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
-UserEntity sql=users
-    firstName Text
-    lastName Text
+ProductEntity sql=products
+    sellerId Int
+    title String
+    description String
+    price Double
+    createdAt UTCTime
+    updatedAt UTCTime
     deriving Show Eq
 |]
 
-toDomainUser :: Entity UserEntity -> User
-toDomainUser (Entity userKey user) =
-    User
-        { userId = UserId (fromSqlKey userKey)
-        , userFirstName = userEntityFirstName user
-        , userLastName = userEntityLastName user
+fromProductEntity :: (ProductEntityId, ProductEntity) -> Product
+fromProductEntity (productKey, productEntity) =
+    Product
+        { productId = fromIntegral (fromSqlKey productKey)
+        , productSellerId = productEntitySellerId productEntity
+        , productTitle = productEntityTitle productEntity
+        , productDescription = productEntityDescription productEntity
+        , productPrice = productEntityPrice productEntity
+        , productCreatedAt = productEntityCreatedAt productEntity
+        , productUpdatedAt = productEntityUpdatedAt productEntity
         }

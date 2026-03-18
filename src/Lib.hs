@@ -17,12 +17,12 @@ import Servant (Handler, ServerT, hoistServer, serve)
 import System.Environment (lookupEnv)
 import System.Exit (die)
 
-import API.DTO.User (toDTO)
+import API.DTO.Product (toDTO, toNewProduct)
 import API.Routes (API, api)
-import App.Effects.UserRepository (UserRepository, getUsers)
+import App.Effects.ProductRepository (ProductRepository, createProduct)
 import Infra.Persistence.Models (migrateAll)
+import Infra.Persistence.ProductRepository (runProductRepositoryDb)
 import Infra.Persistence.Seed (seedDb)
-import Infra.Persistence.UserRepository (runUserRepositoryDb)
 
 startApp :: IO ()
 startApp = do
@@ -38,16 +38,14 @@ startApp = do
 app :: ConnectionPool -> Application
 app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 
-type AppEffects = '[UserRepository, Reader ConnectionPool, Embed IO]
+type AppEffects = '[ProductRepository, Reader ConnectionPool, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
-serverSem = do
-  users <- getUsers
-  pure (toDTO <$> users)
+serverSem req = toDTO <$> createProduct (toNewProduct req)
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
-  liftIO $ runM (runReader pool (runUserRepositoryDb sem))
+  liftIO $ runM (runReader pool (runProductRepositoryDb sem))
 
 getConnectionString :: IO ConnectionString
 getConnectionString = do
