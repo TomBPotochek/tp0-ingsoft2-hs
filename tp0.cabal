@@ -46,11 +46,13 @@ library
     , http-client
     , http-client-tls
     , monad-logger
+    , openapi3
     , persistent
     , persistent-postgresql
     , persistent-template
     , polysemy
     , servant-client
+    , servant-openapi3
     , servant-server
     , text
     , time
@@ -76,11 +78,13 @@ executable tp0
     , http-client
     , http-client-tls
     , monad-logger
+    , openapi3
     , persistent
     , persistent-postgresql
     , persistent-template
     , polysemy
     , servant-client
+    , servant-openapi3
     , servant-server
     , text
     , time
@@ -107,11 +111,13 @@ executable tp0-e2e
     , http-client
     , http-client-tls
     , monad-logger
+    , openapi3
     , persistent
     , persistent-postgresql
     , persistent-template
     , polysemy
     , servant-client
+    , servant-openapi3
     , servant-server
     , text
     , time
@@ -138,11 +144,13 @@ test-suite tp0-test
     , http-client
     , http-client-tls
     , monad-logger
+    , openapi3
     , persistent
     , persistent-postgresql
     , persistent-template
     , polysemy
     , servant-client
+    , servant-openapi3
     , servant-server
     , text
     , time

@@ -17,6 +17,7 @@ import Data.Aeson
     )
 import Data.Char (toLower)
 import Data.List (stripPrefix)
+import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 
@@ -36,6 +37,7 @@ data ProductDTO = ProductDTO
 
 instance FromJSON ProductDTO
 instance ToJSON ProductDTO
+instance ToSchema ProductDTO
 
 data CreateProductRequest = CreateProductRequest
     { createProductSellerId :: Int
@@ -50,6 +52,8 @@ instance FromJSON CreateProductRequest where
 
 instance ToJSON CreateProductRequest where
     toJSON = genericToJSON createProductInputJSONOptions
+
+instance ToSchema CreateProductRequest
 
 createProductInputJSONOptions :: Options
 createProductInputJSONOptions = defaultOptions

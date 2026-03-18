@@ -21,11 +21,13 @@ description:         Please see the README on GitHub at <https://github.com/TomB
 dependencies:
 - base >=4.7 && <5
 - aeson
+- openapi3
 - http-client
 - http-client-tls
 - text
 - time
 - servant-client
+- servant-openapi3
 - servant-server
 - wai
 - warp

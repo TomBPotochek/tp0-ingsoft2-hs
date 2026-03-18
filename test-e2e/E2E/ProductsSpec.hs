@@ -6,6 +6,7 @@ module E2E.ProductsSpec
 
 import Servant.Client (ClientEnv, client)
 import Test.Hspec (Spec, describe, expectationFailure, it, shouldBe)
+import Servant ((:<|>) (..))
 
 import API.Routes (api)
 import API.DTO.Product (CreateProductRequest(..), ProductDTO(..))
@@ -21,7 +22,7 @@ spec env =
                     , createProductDescription = "A test product"
                     , createProductPrice = 99.99
                     }
-                createProductClient = client api
+                createProductClient :<|> _ = client api
             result <- retryClient 20 env (createProductClient request)
             case result of
                 Left err -> expectationFailure ("E2E request failed: " ++ err)

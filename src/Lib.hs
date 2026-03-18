@@ -8,17 +8,19 @@ import Control.Monad.IO.Class (liftIO)
 import Data.String (fromString)
 import Database.Persist.Postgresql (ConnectionString, createPostgresqlPool)
 import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
+import Data.OpenApi (OpenApi)
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Polysemy (Embed, Sem)
 import Polysemy (runM)
 import Polysemy.Reader (Reader, runReader)
-import Servant (Handler, ServerT, hoistServer, serve)
+import Servant (Handler, Proxy(..), ServerT, (:<|>) (..), hoistServer, serve)
+import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
 
 import API.DTO.Product (toDTO, toNewProduct)
-import API.Routes (API, api)
+import API.Routes (API, ProductAPI, api, productApi)
 import App.Effects.ProductRepository (ProductRepository, createProduct)
 import Infra.Persistence.Models (migrateAll)
 import Infra.Persistence.ProductRepository (runProductRepositoryDb)
@@ -41,11 +43,16 @@ app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 type AppEffects = '[ProductRepository, Reader ConnectionPool, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
-serverSem req = toDTO <$> createProduct (toNewProduct req)
+serverSem = createProductHandler :<|> pure openApiSpec
+  where
+    createProductHandler req = toDTO <$> createProduct (toNewProduct req)
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
   liftIO $ runM (runReader pool (runProductRepositoryDb sem))
+
+openApiSpec :: OpenApi
+openApiSpec = toOpenApi (productApi :: Proxy ProductAPI)
 
 getConnectionString :: IO ConnectionString
 getConnectionString = do
