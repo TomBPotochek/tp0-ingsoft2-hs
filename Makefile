@@ -1,4 +1,6 @@
-.PHONY: app unit e2e down down-e2e clean build
+.PHONY: app unit e2e down down-e2e clean build local-bootstrap local-build local-docs local-docs-project
+
+STACK_LOCAL ?= stack.local.yaml
 
 build:
 	docker compose build
@@ -21,3 +23,15 @@ down-e2e:
 clean:
 	docker compose --profile e2e down --volumes --remove-orphans
 	docker compose down --volumes --remove-orphans
+
+local-bootstrap:
+	stack --stack-yaml $(STACK_LOCAL) build polysemy-plugin
+
+local-build: local-bootstrap
+	stack --stack-yaml $(STACK_LOCAL) build
+
+local-docs: local-bootstrap
+	stack --stack-yaml $(STACK_LOCAL) build --haddock --haddock-deps
+
+local-docs-project: local-bootstrap
+	stack --stack-yaml $(STACK_LOCAL) build --haddock --no-haddock-deps

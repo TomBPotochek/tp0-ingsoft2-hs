@@ -54,6 +54,12 @@ default-extensions:
 - TypeApplications
 - NumericUnderscores 
 
+flags:
+  local-dev:
+    description: Enable local development-only tooling (Polysemy plugin)
+    manual: true
+    default: false
+
 library:
   exposed-modules:
   - Lib
@@ -66,6 +72,12 @@ library:
   other-modules:
   - App.ProductCreation
   - Infra.Persistence.ProductRepository
+  when:
+  - condition: flag(local-dev)
+    dependencies:
+    - polysemy-plugin
+    ghc-options:
+    - -fplugin=Polysemy.Plugin
   source-dirs: src
 
 executables:

@@ -1,0 +1,12 @@
+cradle:
+  stack:
+    stackYaml: stack.local.yaml
+    components:
+      - path: ./src
+        component: tp0:lib
+      - path: ./app
+        component: tp0:exe:tp0
+      - path: ./test-e2e
+        component: tp0:exe:tp0-e2e
+      - path: ./test
+        component: tp0:test:tp0-test

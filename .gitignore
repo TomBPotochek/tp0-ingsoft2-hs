@@ -1,3 +1,5 @@
 .stack-work/
+stack.local.yaml
+stack.local.yaml.lock
 *.env
 *.env.*

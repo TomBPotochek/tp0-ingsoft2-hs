@@ -22,6 +22,11 @@ source-repository head
   type: git
   location: https://github.com/TomBPotochek/tp0-ingsoft2-hs
 
+flag local-dev
+  description: Enable local development-only tooling (Polysemy plugin)
+  manual: True
+  default: False
+
 library
   exposed-modules:
       Lib
@@ -59,6 +64,10 @@ library
     , wai
     , warp
   default-language: GHC2024
+  if flag(local-dev)
+    ghc-options: -fplugin=Polysemy.Plugin
+    build-depends:
+        polysemy-plugin
 
 executable tp0
   main-is: Main.hs
