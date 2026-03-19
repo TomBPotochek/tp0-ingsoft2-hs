@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 module Lib
     ( startApp
+  , app
     ) where
 
 import Control.Monad.Logger (runNoLoggingT)
@@ -21,7 +22,7 @@ import System.Exit (die)
 
 import API.DTO.Product (toDTO, toNewProduct)
 import API.Routes (API, ProductAPI, api, productApi)
-import App.Effects.ProductRepository (ProductRepository, createProduct)
+import App.Effects.ProductRepository (ProductRepository, createProduct, listProducts)
 import Infra.Persistence.Models (migrateAll)
 import Infra.Persistence.ProductRepository (runProductRepositoryDb)
 import Infra.Persistence.Seed (seedDb)
@@ -43,9 +44,10 @@ app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 type AppEffects = '[ProductRepository, Reader ConnectionPool, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
-serverSem = createProductHandler :<|> pure openApiSpec
+serverSem = (createProductHandler :<|> listProductsHandler) :<|> pure openApiSpec
   where
     createProductHandler req = toDTO <$> createProduct (toNewProduct req)
+    listProductsHandler = map toDTO <$> listProducts
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =

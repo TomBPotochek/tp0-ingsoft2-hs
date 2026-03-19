@@ -1,12 +1,27 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module E2E.Support
     ( mkEnv
     , retryClient
+    , createProductClient
+    , listProductsClient
     ) where
 
+import System.Environment (lookupEnv)
 import Control.Concurrent (threadDelay)
 import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Servant.Client (BaseUrl (BaseUrl), ClientEnv, ClientM, Scheme (Http), mkClientEnv, runClientM)
-import System.Environment (lookupEnv)
+import Servant ((:<|>) (..))
+import Servant.Client (BaseUrl (BaseUrl), ClientEnv, ClientM, Scheme (Http), client, mkClientEnv, runClientM)
+
+import API.DTO.Product (CreateProductRequest, ProductDTO)
+import API.Routes (productApi)
+
+-- productClients :: (CreateProductRequest -> ClientM ProductDTO) :<|> ClientM [ProductDTO]
+-- productClients = client productApi
+
+createProductClient :: CreateProductRequest -> ClientM ProductDTO
+listProductsClient :: ClientM [ProductDTO]
+createProductClient :<|> listProductsClient = client productApi
 
 mkEnv :: IO ClientEnv
 mkEnv = do
