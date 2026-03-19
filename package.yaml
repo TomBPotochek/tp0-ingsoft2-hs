@@ -121,3 +121,26 @@ tests:
     - base
     - hspec
     - tp0
+
+  tp0-integration:
+    main:                Main.hs
+    source-dirs:         test-integration
+    other-modules:
+    - Integration.Support
+    - Integration.ProductsApiSpec
+    - Integration.ProductsHttpSpec
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - base
+    - bytestring
+    - hspec
+    - hspec-wai
+    - http-types
+    - monad-logger
+    - persistent
+    - persistent-postgresql
+    - tp0
+    - wai-extra

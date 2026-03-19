@@ -135,6 +135,45 @@ executable tp0-e2e
     , warp
   default-language: GHC2024
 
+test-suite tp0-integration
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      Integration.Support
+      Integration.ProductsApiSpec
+      Integration.ProductsHttpSpec
+  hs-source-dirs:
+      test-integration
+  default-extensions:
+      TypeApplications
+      NumericUnderscores
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base
+    , bytestring
+    , hspec
+    , hspec-wai
+    , http-client
+    , http-client-tls
+    , http-types
+    , monad-logger
+    , openapi3
+    , persistent
+    , persistent-postgresql
+    , persistent-template
+    , polysemy
+    , servant-client
+    , servant-openapi3
+    , servant-server
+    , text
+    , time
+    , tp0
+    , wai
+    , wai-extra
+    , warp
+  default-language: GHC2024
+
 test-suite tp0-test
   type: exitcode-stdio-1.0
   main-is: Main.hs

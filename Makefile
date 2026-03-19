@@ -1,4 +1,4 @@
-.PHONY: app unit e2e down down-e2e clean build local-bootstrap local-build local-docs local-docs-project
+.PHONY: app unit integration e2e down down-e2e down-integration clean build local-bootstrap local-build local-docs local-docs-project
 
 STACK_LOCAL ?= stack.local.yaml
 
@@ -11,6 +11,9 @@ app:
 unit:
 	docker compose --profile test run --rm unit-tests
 
+integration:
+	docker compose --profile integration up --build --abort-on-container-exit --exit-code-from integration-tests integration-tests
+
 e2e:
 	docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e-tests e2e-tests
 
@@ -20,8 +23,12 @@ down:
 down-e2e:
 	docker compose --profile e2e down
 
+down-integration:
+	docker compose --profile integration down
+
 clean:
 	docker compose --profile e2e down --volumes --remove-orphans
+	docker compose --profile integration down --volumes --remove-orphans
 	docker compose down --volumes --remove-orphans
 
 local-bootstrap:

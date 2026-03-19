@@ -21,6 +21,18 @@ services:
                 condition: service_healthy
         profiles: ["test"]
 
+    integration-tests:
+        build:
+            context: .
+            target: tester
+        command: ["stack", "test", "tp0:test:tp0-integration"]
+        environment:
+            INTEGRATION_DATABASE_URL: postgresql://integration_user:integration_pass@postgres-integration:5432/integration_db
+        depends_on:
+            postgres-integration:
+                condition: service_healthy
+        profiles: ["integration"]
+
     e2e-tests:
         build:
             context: .
@@ -76,6 +88,19 @@ services:
             timeout: 3s
             retries: 20
         profiles: ["e2e"]
+
+    postgres-integration:
+        image: postgres:16
+        environment:
+            POSTGRES_USER: integration_user
+            POSTGRES_PASSWORD: integration_pass
+            POSTGRES_DB: integration_db
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U integration_user -d integration_db"]
+            interval: 5s
+            timeout: 3s
+            retries: 20
+        profiles: ["integration"]
 
 volumes:
     postgres_app_data:

@@ -4,8 +4,10 @@
 
 - Start API app: `make app`
 - Run unit tests: `make unit`
+- Run integration tests: `make integration`
 - Run e2e tests: `make e2e`
 - Stop normal stack: `make down`
+- Stop integration stack: `make down-integration`
 - Stop e2e stack: `make down-e2e`
 - Remove containers and volumes: `make clean`
 
