@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 module Lib
     ( startApp
   , app
@@ -15,7 +16,7 @@ import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
 import Data.OpenApi (OpenApi)
 import Network.Wai
 import Network.Wai.Handler.Warp
-import Polysemy (Embed, Sem)
+import Polysemy (Embed, Sem, Members)
 import Polysemy (runM)
 import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
@@ -46,9 +47,9 @@ startApp = do
 app :: ConnectionPool -> Application
 app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 
-type AppEffects = '[ProductRepository, Reader ConnectionPool, Error AppError, Embed IO]
+type AppEffects r = Members '[ProductRepository, CartRepository, Reader ConnectionPool, Error AppError, Embed IO] r
 
-serverSem :: ServerT API (Sem AppEffects)
+serverSem ::AppEffects r => ServerT API (Sem r)
 serverSem =
     ( createProductHandler
   :<|> ( listProductsHandler
@@ -61,6 +62,12 @@ serverSem =
     )
   :<|> pure openApiSpec
 
+-- this sem->handler interpreter purposely doesn't have a top level signature to let the 
+-- type system infer it, because it will depend on the order or composition of the interpreters in semToHandler
+-- and letting the type be inferred gives flexibility on the order.
+-- | Sem program to Servant Handler Interpreter/natural transformation.. 
+-- It runs the Sem program by interpreting the effects stack against the db connection pool, 
+-- and translating AppErrors into Servant ServerErrors.
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
   do

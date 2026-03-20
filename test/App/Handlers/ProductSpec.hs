@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
 module App.Handlers.ProductSpec
     ( spec
     ) where
@@ -15,8 +16,8 @@ import App.Handlers.Product (createProductHandler, updateProductByIdHandler)
 import App.ProductCreation (NewProduct (..))
 import qualified App.ProductUpdate
 import Domain.Product (Product (..))
-import Polysemy (InterpreterFor, Members, Sem, interpret, run)
-import Polysemy.Error (Error, runError)
+import Polysemy (InterpreterFor, Members, interpret, run)
+import Polysemy.Error (runError)
 import Polysemy.State (State, get, modify, put, runState)
 
 spec :: Spec
@@ -98,7 +99,7 @@ seededRepoState =
 fixedTime :: UTCTime
 fixedTime = UTCTime (fromGregorian 2026 3 20) (secondsToDiffTime 0)
 
-runWithInMemoryRepo :: RepoState -> Sem '[ProductRepository, Error AppError, State RepoState] a -> (Either AppError a, RepoState)
+-- runWithInMemoryRepo :: RepoState -> Sem '[ProductRepository, Error AppError, State RepoState] a -> (Either AppError a, RepoState)
 runWithInMemoryRepo initialState sem =
     let (finalState, result) =
             sem 
