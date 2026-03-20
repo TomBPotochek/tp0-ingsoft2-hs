@@ -1,41 +1,41 @@
 # tp0
 
-## Common commands
+## Comandos comunes
 
-- Start API app: `make app`
-- Run unit tests: `make unit`
-- Run integration tests: `make integration`
-- Run e2e tests: `make e2e`
-- Stop normal stack: `make down`
-- Stop integration stack: `make down-integration`
-- Stop e2e stack: `make down-e2e`
-- Remove containers and volumes: `make clean`
+- Iniciar la app de la API: `make app`
+- Ejecutar tests unitarios: `make unit`
+- Ejecutar tests de integración: `make integration`
+- Ejecutar tests e2e: `make e2e`
+- Detener stack normal: `make down`
+- Detener stack de integración: `make down-integration`
+- Detener stack e2e: `make down-e2e`
+- Eliminar contenedores y volúmenes: `make clean`
 
-The app is exposed on `http://localhost:8080`.
+La app está expuesta en `http://localhost:8080`.
 
-## Local development guide
+## Guía de desarrollo local
 
-This project supports a local-only Stack workflow for development tooling
-(Polysemy plugin and Haddock generation) without affecting Docker builds.
+Este proyecto soporta un flujo de trabajo local con Stack para herramientas de desarrollo
+(plugin Polysemy y generación de Haddock) sin afectar los builds de Docker.
 
-These tools are not needed to build the project with Docker and run tests, but they are useful to have while developing and would only bloat and complicate a docker build.
+Estas herramientas no son necesarias para construir el proyecto con Docker y ejecutar los tests, pero son útiles durante el desarrollo y solo agregarían peso y complejidad al build de Docker.
 
-### build tools
+### Herramientas de build
 
-The main tool needed is [ghcup](https://www.haskell.org/ghcup/). If you also develop on VSCode, then install the official [haskell extension](https://marketplace.visualstudio.com/items?itemName=haskell.haskell) and if needed, configure the path to the ghcup binary. That should be enough as the extension can figure out which tools and version of the tools need to be downloaded via ghcup (it will ask you for permission).  
-If that doesn't work, then at the moment of writing, this project is using:
+La herramienta principal necesaria es [ghcup](https://www.haskell.org/ghcup/). Si también desarrollas en VSCode, instala la [extensión oficial de Haskell](https://marketplace.visualstudio.com/items?itemName=haskell.haskell) y, si es necesario, configura la ruta al binario de ghcup. Eso debería ser suficiente, ya que la extensión puede detectar qué herramientas y versiones necesita descargar mediante ghcup (te pedirá permiso).  
+Si eso no funciona, al momento de escribir esto, el proyecto utiliza:
 - Stack 3.7.1
 - Cabal 3.14.2.0
 - GHC 9.10.3
 - HLS 2.13.0
 
-and you can download them manually via ghcup by running in your shell `ghcup tui`
+Y puedes descargarlas manualmente con ghcup ejecutando en tu terminal `ghcup tui`
 
-### Local commands
+### Comandos locales
 
-- Local build with Polysemy plugin: `make local-build`
-- Build project docs only (lightweight): `make local-docs-project`
-- Build docs including dependencies (heavy): `make local-docs`
+- Build local con el plugin Polysemy: `make local-build`
+- Construir solo la documentación del proyecto (liviano): `make local-docs-project`
+- Construir documentación incluyendo dependencias (pesado): `make local-docs`
 
-`make local-build` and docs targets first run `local-bootstrap`, which ensures
-`polysemy-plugin` is installed in the local snapshot.
+`make local-build` y los targets de docs primero ejecutan `local-bootstrap`, que asegura que
+`polysemy-plugin` esté instalado en el snapshot local.
