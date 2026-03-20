@@ -4,4 +4,5 @@ module App.Error
 
 data AppError
     = ProductNotFound Int
+    | InvalidInput (Maybe String) String
     deriving (Show, Eq)

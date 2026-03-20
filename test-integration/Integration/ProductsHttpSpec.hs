@@ -44,3 +44,11 @@ spec = with mkIntegrationApp $ do
                 [(hContentType, "application/json")]
                 "{\"sellerId\":\"abc\",\"title\":1,\"description\":true,\"price\":\"x\"}"
                 `shouldRespondWith` 400
+
+        it "responds with 400 when business validation fails" $ do
+            request
+                methodPost
+                "/products"
+                [(hContentType, "application/json")]
+                "{\"sellerId\":1,\"title\":\"   \",\"description\":\"x\",\"price\":9.99}"
+                `shouldRespondWith` 400
