@@ -6,6 +6,7 @@ module Lib
 
 import Control.Monad.Logger (runNoLoggingT)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.Lazy.Char8 as L8
 import Data.String (fromString)
 import Database.Persist.Postgresql (ConnectionString, createPostgresqlPool)
 import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
@@ -14,15 +15,17 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Polysemy (Embed, Sem)
 import Polysemy (runM)
+import Polysemy.Error (Error, runError, throw)
 import Polysemy.Reader (Reader, runReader)
-import Servant (Handler, Proxy(..), ServerT, (:<|>) (..), hoistServer, serve)
+import Servant (Handler, Proxy(..), ServerError, ServerT, err404, errBody, throwError, (:<|>) (..), hoistServer, serve)
 import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
 
 import API.Routes (API, ProductAPI, api, productApi)
+import API.DTO.Product (ProductDTO)
 import App.Effects.ProductRepository (ProductRepository)
-import App.Handlers.Product (createProductHandler, listProductsHandler)
+import App.Handlers.Product (createProductHandler, getProductByIdHandler, listProductsHandler)
 import Infra.Persistence.Models (migrateAll)
 import Infra.Persistence.ProductRepository (runProductRepositoryDb)
 import Infra.Persistence.Seed (seedDb)
@@ -41,14 +44,25 @@ startApp = do
 app :: ConnectionPool -> Application
 app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 
-type AppEffects = '[ProductRepository, Reader ConnectionPool, Embed IO]
+type AppEffects = '[ProductRepository, Reader ConnectionPool, Error ServerError, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
-serverSem = (createProductHandler :<|> listProductsHandler) :<|> pure openApiSpec
+serverSem = (createProductHandler :<|> (listProductsHandler :<|> getProductByIdServer)) :<|> pure openApiSpec
+
+getProductByIdServer :: Int -> Sem AppEffects ProductDTO
+getProductByIdServer productId = do
+  maybeProduct <- getProductByIdHandler productId
+  case maybeProduct of
+    Just foundProduct -> pure foundProduct
+    Nothing -> throw notFoundError
+  where
+    notFoundError = err404 {errBody = L8.pack ("Product with id " ++ show productId ++ " not found")}
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
-  liftIO $ runM (runReader pool (runProductRepositoryDb sem))
+  do
+    result <- liftIO $ runM (runError (runReader pool (runProductRepositoryDb sem)))
+    either throwError pure result
 
 openApiSpec :: OpenApi
 openApiSpec = toOpenApi (productApi :: Proxy ProductAPI)

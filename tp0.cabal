@@ -37,6 +37,7 @@ library
       Infra.Persistence.Models
       Infra.Persistence.Seed
   other-modules:
+      App.Handlers.Product
       App.ProductCreation
       Infra.Persistence.ProductRepository
   hs-source-dirs:
@@ -48,6 +49,7 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , bytestring
     , http-client
     , http-client-tls
     , monad-logger
@@ -84,6 +86,7 @@ executable tp0
   build-depends:
       aeson
     , base
+    , bytestring
     , http-client
     , http-client-tls
     , monad-logger
@@ -116,6 +119,7 @@ executable tp0-e2e
   build-depends:
       aeson
     , base
+    , bytestring
     , hspec
     , http-client
     , http-client-tls
@@ -188,6 +192,7 @@ test-suite tp0-test
   build-depends:
       aeson
     , base
+    , bytestring
     , hspec
     , http-client
     , http-client-tls

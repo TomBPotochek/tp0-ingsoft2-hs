@@ -4,10 +4,13 @@ module Integration.ProductsApiSpec
     ( spec
     ) where
 
+import Data.Either (isLeft)
+import Data.List (isInfixOf)
+import qualified API.DTO.Product as ProductDTO
 import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Servant ((:<|>) (..))
-import Servant.Client (BaseUrl (baseUrlPort), ClientEnv, ClientError, ClientM, client, mkClientEnv, parseBaseUrl, runClientM)
+import Servant.Client (BaseUrl (baseUrlPort), ClientEnv, ClientError (FailureResponse), ClientM, client, mkClientEnv, parseBaseUrl, runClientM)
 import Test.Hspec (Spec, around, expectationFailure, it, runIO, shouldBe, shouldSatisfy)
 
 import API.DTO.Product (CreateProductRequest (..), ProductDTO (..))
@@ -17,7 +20,7 @@ import Integration.Support (withIntegrationApp)
 spec :: Spec
 spec =
     around withIntegrationApp $ do
-        let createProductClient :<|> listProductsClient = client productApi
+        let createProductClient :<|> (listProductsClient :<|> getProductByIdClient) = client productApi
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings
         let clientEnv port = mkClientEnv manager (baseUrl { baseUrlPort = port })
@@ -52,6 +55,32 @@ spec =
 
             products <- runOrFail (clientEnv port) listProductsClient
             products `shouldSatisfy` any ((== productTitle) . title)
+
+        it "GET /products/{id} returns the product when it exists" $ \port -> do
+            unique <- uniqueSuffix
+            let request = CreateProductRequest
+                    { createProductSellerId = 9
+                    , createProductTitle = "Get-by-id Product " ++ unique
+                    , createProductDescription = "Lookup by id"
+                    , createProductPrice = 77.7
+                    }
+
+            created <- runOrFail (clientEnv port) (createProductClient request)
+            found <- runOrFail (clientEnv port) (getProductByIdClient (ProductDTO.id created))
+            ProductDTO.id found `shouldBe` ProductDTO.id created
+            sellerId found `shouldBe` sellerId created
+            title found `shouldBe` title created
+            description found `shouldBe` description created
+            price found `shouldBe` price created
+
+        it "GET /products/{id} returns 404 when the product does not exist" $ \port -> do
+            result <- runClientM (getProductByIdClient 9_999_999) (clientEnv port)
+            result `shouldSatisfy` isLeft
+            case result of
+                Left (FailureResponse _ response) ->
+                    show response `shouldSatisfy` ("404" `isInfixOf`)
+                Left err -> expectationFailure ("expected 404 FailureResponse, got: " ++ show err)
+                Right _ -> expectationFailure "expected 404 but request succeeded"
 
 runOrFail :: ClientEnv -> ClientM a -> IO a
 runOrFail env action = do

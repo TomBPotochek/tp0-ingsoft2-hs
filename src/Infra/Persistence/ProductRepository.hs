@@ -5,8 +5,8 @@ module Infra.Persistence.ProductRepository
     ) where
 
 import Data.Time (getCurrentTime)
-import Database.Persist (Entity (Entity), Filter, SelectOpt, insert, selectList)
-import Database.Persist.Sql (ConnectionPool, SqlBackend, runSqlPool)
+import Database.Persist (Entity (Entity), Filter, SelectOpt, getEntity, insert, selectList)
+import Database.Persist.Sql (ConnectionPool, SqlBackend, runSqlPool, toSqlKey)
 import Polysemy (Embed, InterpreterFor, Members, embed, interpret)
 import Polysemy.Reader (Reader, ask)
 
@@ -33,5 +33,9 @@ runProductRepositoryDb = interpret $ \case
         pool <- ask
         entities <- embed (runSqlPool @SqlBackend (selectList ([] :: [Filter ProductEntity]) ([] :: [SelectOpt ProductEntity])) pool :: IO [Entity ProductEntity])
         pure (map toDomain entities)
+    GetProductById productId -> do
+        pool <- ask
+        maybeEntity <- embed (runSqlPool @SqlBackend (getEntity (toSqlKey (fromIntegral productId) :: ProductEntityId)) pool :: IO (Maybe (Entity ProductEntity)))
+        pure (toDomain <$> maybeEntity)
   where
     toDomain (Entity key entity) = fromProductEntity (key, entity)

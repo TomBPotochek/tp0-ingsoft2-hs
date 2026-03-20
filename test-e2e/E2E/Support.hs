@@ -4,6 +4,7 @@ module E2E.Support
     ( mkEnv
     , retryClient
     , createProductClient
+    , getProductByIdClient
     , listProductsClient
     ) where
 
@@ -20,8 +21,9 @@ import API.Routes (productApi)
 -- productClients = client productApi
 
 createProductClient :: CreateProductRequest -> ClientM ProductDTO
+getProductByIdClient :: Int -> ClientM ProductDTO
 listProductsClient :: ClientM [ProductDTO]
-createProductClient :<|> listProductsClient = client productApi
+createProductClient :<|> (listProductsClient :<|> getProductByIdClient) = client productApi
 
 mkEnv :: IO ClientEnv
 mkEnv = do

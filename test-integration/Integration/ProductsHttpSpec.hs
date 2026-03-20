@@ -16,6 +16,10 @@ spec = with mkIntegrationApp $ do
         it "responds with 200" $ do
             request methodGet "/products" [] "" `shouldRespondWith` 200
 
+    describe "GET /products/{id}" $ do
+        it "responds with 404 for a missing product" $ do
+            request methodGet "/products/999999" [] "" `shouldRespondWith` 404
+
     describe "POST /products" $ do
         it "responds with 400 for malformed JSON" $ do
             request
