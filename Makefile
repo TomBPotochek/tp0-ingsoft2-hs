@@ -47,9 +47,9 @@ local-test: local-bootstrap
 	stack --stack-yaml $(STACK_LOCAL) test tp0:test:tp0-test
 
 local-test-integration: local-bootstrap
-	stack --stack-yaml $(STACK_LOCAL) test tp0:test:tp0-integration
+	stack --stack-yaml $(STACK_LOCAL) test tp0:test:tp0-integration --no-run-tests
 
 local-test-e2e: local-bootstrap
 	# this target is meant for typechecking the E2E tests, not for running them, 
 	# since they require the server to be running and the test environment to be set up
-	stack --stack-yaml $(STACK_LOCAL) test tp0:test:tp0-e2e --no-run-tests
+	stack --stack-yaml $(STACK_LOCAL) test tp0:exe:tp0-e2e --no-run-tests
