@@ -24,6 +24,7 @@ import Servant (NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, 
 import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
+import Text.Read (readMaybe)
 
 import API.Routes (API, ApiRoutes (..), CartByUserRoutes (..), OpenApiAPI, ProductRoutes (..), api)
 import App.Effects.CartRepository (CartRepository)
@@ -41,11 +42,13 @@ startApp = do
   connStr <- getConnectionString
   pool <- runNoLoggingT $ createPostgresqlPool connStr 10
   runNoLoggingT $ runSqlPool (runMigration migrateAll) pool
+  host <- getServerHost
+  port <- getServerPort
   shouldSeed <- lookupEnv "ENVIRONMENT"
   case shouldSeed of
     Just "development" -> seedDb pool
     _                  -> pure ()
-  run 1234 (app pool)
+  runSettings (setPort port (setHost (fromString host) defaultSettings)) (app pool)
 
 app :: ConnectionPool -> Application
 app pool = serve api (hoistServer api (semToHandler pool) serverSem)
@@ -145,3 +148,15 @@ getConnectionString = do
   case value of
     Just url -> pure (fromString url)
     Nothing -> die "Missing required environment variable: DATABASE_URL"
+
+getServerHost :: IO String
+getServerHost = do
+  value <- lookupEnv "HOST"
+  pure $ maybe "0.0.0.0" id value
+
+getServerPort :: IO Int
+getServerPort = do
+  value <- lookupEnv "PORT"
+  case value >>= readMaybe of
+    Just p -> pure p
+    Nothing -> pure 1234

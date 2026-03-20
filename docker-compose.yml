@@ -5,9 +5,10 @@ services:
             target: runtime-app
         image: tp0
         ports:
-            - "8080:1234"
+            - "${HOST_IP:-0.0.0.0}:${PORT:-8080}:1234"
         environment:
-            DATABASE_URL: postgresql://app_user:app_pass@postgres:5432/app_db
+            DATABASE_URL: postgresql://${DATABASE_USER:-app_user}:${DATABASE_PASSWORD:-app_pass}@${DATABASE_HOST:-postgres}:${DATABASE_PORT:-5432}/${DATABASE_NAME:-app_db}
+            ENVIRONMENT: ${ENVIRONMENT:-development}
         depends_on:
             postgres:
                 condition: service_healthy
@@ -19,7 +20,7 @@ services:
         image: tp0-tester
         command: ["stack", "test", "tp0:test:tp0-test"]
         environment:
-            DATABASE_URL: postgresql://app_user:app_pass@postgres:5432/app_db
+            DATABASE_URL: postgresql://${DATABASE_USER:-app_user}:${DATABASE_PASSWORD:-app_pass}@${DATABASE_HOST:-postgres}:${DATABASE_PORT:-5432}/${DATABASE_NAME:-app_db}
         volumes:
             - stack_root_cache:/root/.stack
             - stack_work_cache:/app/user/.stack-work
@@ -75,13 +76,13 @@ services:
     postgres:
         image: postgres:16
         environment:
-            POSTGRES_USER: app_user
-            POSTGRES_PASSWORD: app_pass
-            POSTGRES_DB: app_db
+            POSTGRES_USER: ${DATABASE_USER:-app_user}
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-app_pass}
+            POSTGRES_DB: ${DATABASE_NAME:-app_db}
         volumes:
             - postgres_app_data:/var/lib/postgresql/data
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U app_user -d app_db"]
+            test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-app_user} -d ${DATABASE_NAME:-app_db}"]
             interval: 5s
             timeout: 3s
             retries: 20
