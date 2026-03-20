@@ -19,16 +19,27 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Warm app image cache (runtime target)
+      - name: Warm app image cache (runtime-app target)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          target: runtime
+          target: runtime-app
           tags: tp0:ci
           load: true
-          cache-from: type=gha,scope=tp0-runtime
-          cache-to: type=gha,mode=max,scope=tp0-runtime
+          cache-from: type=gha,scope=tp0-runtime-app
+          cache-to: type=gha,mode=max,scope=tp0-runtime-app
+
+      - name: Warm e2e image cache (runtime-e2e target)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: runtime-e2e
+          tags: tp0-e2e:ci
+          load: true
+          cache-from: type=gha,scope=tp0-runtime-e2e
+          cache-to: type=gha,mode=max,scope=tp0-runtime-e2e
 
       - name: Warm tester image cache (tester target)
         uses: docker/build-push-action@v6
