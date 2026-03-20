@@ -175,9 +175,10 @@ spec env = do
 
             case (createdAResult, createdBResult) of
                 (Right createdA, Right createdB) -> do
-                    _ <- retryClient 20 env (addProductToCartClient 66 (AddCartRequest (ProductDTO.id createdA)))
-                    _ <- retryClient 20 env (addProductToCartClient 66 (AddCartRequest (ProductDTO.id createdB)))
-                    cartResult <- retryClient 20 env (getCartClient 66)
+                    let testUserId = ProductDTO.id createdA * 10_000 + ProductDTO.id createdB
+                    _ <- retryClient 20 env (addProductToCartClient testUserId (AddCartRequest (ProductDTO.id createdA)))
+                    _ <- retryClient 20 env (addProductToCartClient testUserId (AddCartRequest (ProductDTO.id createdB)))
+                    cartResult <- retryClient 20 env (getCartClient testUserId)
                     case cartResult of
                         Left err -> expectationFailure ("E2E request failed: " ++ err)
                         Right cart -> do
