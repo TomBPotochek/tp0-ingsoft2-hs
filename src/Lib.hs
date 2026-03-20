@@ -4,24 +4,24 @@
 module Lib
     ( startApp
   , app
+  , unexpectedExceptionTo500Middleware
     ) where
 
-import Prelude hiding (log)
+import Control.Exception (SomeException, try)
 import Control.Monad.Logger (runNoLoggingT, runStdoutLoggingT)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Colog.Core.Action (cmap)
-import Colog.Core.IO (logStringStdout)
-import Colog.Polysemy (Log, log, runLogAction)
 import Data.Aeson (encode, object, (.=))
-import Data.String (fromString)
+import qualified Data.ByteString.Char8 as BS8
 import Data.Function ((&))
+import Data.OpenApi (OpenApi)
+import Data.String (fromString)
+import Data.Time.Clock (diffUTCTime, getCurrentTime)
 import Database.Persist.Postgresql (ConnectionString, createPostgresqlPool)
 import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
-import Data.OpenApi (OpenApi)
 import Network.Wai
 import Network.Wai.Handler.Warp
-import Polysemy (Embed, Member, Members, Sem)
+import Polysemy (Embed, Members, Sem)
 import Polysemy (runM)
 import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
@@ -58,44 +58,37 @@ startApp = do
   host <- getServerHost
   port <- getServerPort
   when isDevelopment (seedDb pool)
-  runSettings (setPort port (setHost (fromString host) defaultSettings)) (app pool loggingEnabled)
+  let settings =
+        defaultSettings
+          & setHost (fromString host)
+          & setPort port
+          & setOnExceptionResponse defaultOnExceptionResponse
+  runSettings settings (app pool loggingEnabled)
 
 app :: ConnectionPool -> Bool -> Application
-app pool loggingEnabled = serve api (hoistServer api (semToHandler pool loggingEnabled) serverSem)
+app pool loggingEnabled =
+    (if loggingEnabled then requestLoggingMiddleware else id)
+        (unexpectedExceptionTo500Middleware (serve api (hoistServer api (semToHandler pool) serverSem)))
 
-data Severity = Debug | Info | Warning | Error
-  deriving (Show)
-
-data AppLog = AppLog
-  { appLogSeverity :: Severity
-  , appLogMessage :: String
-  }
-
-renderAppLog :: AppLog -> String
-renderAppLog appLog = "[" ++ show (appLogSeverity appLog) ++ "] " ++ appLogMessage appLog
-
-logInfoMsg :: Member (Log AppLog) r => String -> Sem r ()
-logInfoMsg msg = log (AppLog Info msg)
-
-type AppEffects r = Members '[Log AppLog, ProductRepository, CartRepository, Reader ConnectionPool, Error AppError, Embed IO] r
+type AppEffects r = Members '[ProductRepository, CartRepository, Reader ConnectionPool, Error AppError, Embed IO] r
 
 serverSem ::AppEffects r => ServerT API (Sem r)
 serverSem =
   ApiRoutes
     { productsRoutes =
         ProductRoutes
-          { createProductRoute = \req -> logInfoMsg "POST /products" >> createProductHandler req
-          , listProductsRoute = logInfoMsg "GET /products" >> listProductsHandler
-          , getProductByIdRoute = \productId -> logInfoMsg "GET /products/{id}" >> getProductByIdHandler productId
-          , updateProductByIdRoute = \productId req -> logInfoMsg "PUT /products/{id}" >> updateProductByIdHandler productId req
-          , deleteProductByIdRoute = \productId -> logInfoMsg "DELETE /products/{id}" >> deleteProductByIdHandler productId >> pure NoContent
+          { createProductRoute = createProductHandler
+          , listProductsRoute = listProductsHandler
+          , getProductByIdRoute = getProductByIdHandler
+          , updateProductByIdRoute = updateProductByIdHandler
+          , deleteProductByIdRoute = \productId -> deleteProductByIdHandler productId >> pure NoContent
           }
     , cartRoutes = \userId ->
         CartByUserRoutes
-          { getCartRoute = logInfoMsg "GET /cart/{userId}" >> getCartHandler userId
-          , deleteCartRoute = logInfoMsg "DELETE /cart/{userId}" >> deleteCartHandler userId
-          , addProductToCartRoute = \req -> logInfoMsg "POST /cart/{userId}/items" >> addProductToCartHandler userId req
-          , deleteCartItemRoute = \cartItemId -> logInfoMsg "DELETE /cart/{userId}/items/{cartItemId}" >> deleteCartItemHandler userId cartItemId
+          { getCartRoute = getCartHandler userId
+          , deleteCartRoute = deleteCartHandler userId
+          , addProductToCartRoute = addProductToCartHandler userId
+          , deleteCartItemRoute = deleteCartItemHandler userId
           }
     , openApiJsonRoute = pure openApiSpec
     }
@@ -106,19 +99,35 @@ serverSem =
 -- | Sem program to Servant Handler Interpreter/natural transformation.. 
 -- It runs the Sem program by interpreting the effects stack against the db connection pool, 
 -- and translating AppErrors into Servant ServerErrors.
-semToHandler pool loggingEnabled sem =
+semToHandler pool sem =
   do
     result <- liftIO $
       sem
-        & (if loggingEnabled
-             then runLogAction @IO (cmap renderAppLog logStringStdout)
-             else runLogAction @IO mempty)
         & runProductRepositoryDb
         & runCartRepositoryDb
         & runReader pool
         & runError
         & runM
     either (throwError . appErrorToServerError) pure result
+
+requestLoggingMiddleware :: Middleware
+requestLoggingMiddleware inner req respond = do
+  start <- getCurrentTime
+  inner req $ \res -> do
+    end <- getCurrentTime
+    let method = BS8.unpack (requestMethod req)
+        path = BS8.unpack (rawPathInfo req)
+        status = show (responseStatus res)
+        durationMs = realToFrac (diffUTCTime end start) * 1000 :: Double
+    putStrLn ("[HTTP] " ++ method ++ " " ++ path ++ " -> " ++ status ++ " (" ++ show durationMs ++ " ms)")
+    respond res
+
+unexpectedExceptionTo500Middleware :: Middleware
+unexpectedExceptionTo500Middleware inner req respond = do
+  result <- try (inner req respond) :: IO (Either SomeException ResponseReceived)
+  case result of
+    Right received -> pure received
+    Left exception -> respond (defaultOnExceptionResponse exception)
 
 getLoggingEnabled :: Bool -> IO Bool
 getLoggingEnabled isProduction = do

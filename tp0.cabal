@@ -163,6 +163,7 @@ test-suite tp0-integration
   other-modules:
       Integration.CartApiSpec
       Integration.CartHttpSpec
+      Integration.ErrorHttpSpec
       Integration.Support
       Integration.ProductsApiSpec
       Integration.ProductsHttpSpec

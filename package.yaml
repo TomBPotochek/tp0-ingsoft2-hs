@@ -144,6 +144,7 @@ tests:
     other-modules:
     - Integration.CartApiSpec
     - Integration.CartHttpSpec
+    - Integration.ErrorHttpSpec
     - Integration.Support
     - Integration.ProductsApiSpec
     - Integration.ProductsHttpSpec

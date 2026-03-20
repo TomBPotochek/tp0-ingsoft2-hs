@@ -4,6 +4,7 @@ import Test.Hspec (hspec)
 
 import qualified Integration.CartApiSpec as CartApiSpec
 import qualified Integration.CartHttpSpec as CartHttpSpec
+import qualified Integration.ErrorHttpSpec as ErrorHttpSpec
 import qualified Integration.ProductsApiSpec as ProductsApiSpec
 import qualified Integration.ProductsHttpSpec as ProductsHttpSpec
 
@@ -13,3 +14,4 @@ main = hspec $ do
     ProductsHttpSpec.spec
     CartApiSpec.spec
     CartHttpSpec.spec
+    ErrorHttpSpec.spec
