@@ -1,11 +1,12 @@
 module App.Handlers.Cart
     ( getCartHandler
+    , deleteCartHandler
     , addProductToCartHandler
     , deleteCartItemHandler
     ) where
 
 import API.DTO.Cart (AddCartRequest (..), CartDTO, CartItemDTO, toCartDTO, toDTO)
-import App.Effects.CartRepository (CartRepository, addProductToCart, deleteCartItemById, getCartByUserId)
+import App.Effects.CartRepository (CartRepository, addProductToCart, deleteCartByUserId, deleteCartItemById, getCartByUserId)
 import App.Error (AppError (CartItemNotFound, ProductNotFound))
 import Domain.CartItem (cartItemUnitPrice)
 import Servant (NoContent (NoContent))
@@ -17,6 +18,11 @@ getCartHandler userId = do
     cartItems <- getCartByUserId userId
     let total = sum (map cartItemUnitPrice cartItems)
     pure (toCartDTO userId total cartItems)
+
+deleteCartHandler :: Members '[CartRepository] r => Int -> Sem r NoContent
+deleteCartHandler userId = do
+    deleteCartByUserId userId
+    pure NoContent
 
 addProductToCartHandler :: Members '[CartRepository, Error AppError] r => Int -> AddCartRequest -> Sem r CartItemDTO
 addProductToCartHandler userId request = do

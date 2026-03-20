@@ -29,7 +29,7 @@ import API.Routes (API, ApiRoutes (..), CartByUserRoutes (..), OpenApiAPI, Produ
 import App.Effects.CartRepository (CartRepository)
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository)
-import App.Handlers.Cart (addProductToCartHandler, deleteCartItemHandler, getCartHandler)
+import App.Handlers.Cart (addProductToCartHandler, deleteCartHandler, deleteCartItemHandler, getCartHandler)
 import App.Handlers.Product (createProductHandler, deleteProductByIdHandler, getProductByIdHandler, listProductsHandler, updateProductByIdHandler)
 import Infra.Persistence.CartRepository (runCartRepositoryDb)
 import Infra.Persistence.Models (migrateAll)
@@ -66,6 +66,7 @@ serverSem =
     , cartRoutes = \userId ->
         CartByUserRoutes
           { getCartRoute = getCartHandler userId
+          , deleteCartRoute = deleteCartHandler userId
           , addProductToCartRoute = addProductToCartHandler userId
           , deleteCartItemRoute = deleteCartItemHandler userId
           }

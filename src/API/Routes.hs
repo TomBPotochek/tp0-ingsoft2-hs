@@ -54,6 +54,10 @@ data CartByUserRoutes mode = CartByUserRoutes
         mode
             :- Summary "Get user's cart"
             :> Get '[JSON] CartDTO
+    , deleteCartRoute ::
+        mode
+            :- Summary "Wipe a user's cart"
+            :> DeleteNoContent
     , addProductToCartRoute ::
         mode
             :- "items"

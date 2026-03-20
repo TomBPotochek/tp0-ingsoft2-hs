@@ -27,6 +27,7 @@ spec =
             createProductClient = createProductRoute (productsRoutes apiClient)
             deleteProductByIdClient = deleteProductByIdRoute (productsRoutes apiClient)
             getCartClient userId = getCartRoute (cartRoutes apiClient userId)
+            deleteCartClient userId = deleteCartRoute (cartRoutes apiClient userId)
             addProductToCartClient userId request = addProductToCartRoute (cartRoutes apiClient userId) request
             deleteCartItemClient userId cartItemId = deleteCartItemRoute (cartRoutes apiClient userId) cartItemId
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
@@ -157,6 +158,44 @@ spec =
                     show response `shouldSatisfy` ("404" `isInfixOf`)
                 Left err -> expectationFailure ("expected 404 FailureResponse, got: " ++ show err)
                 Right _ -> expectationFailure "expected 404 but request succeeded"
+
+        it "DELETE /cart/{userId} wipes all items and returns 204" $ \port -> do
+            unique <- uniqueSuffix
+            let createRequestA = CreateProductRequest
+                    { createProductSellerId = 60
+                    , createProductTitle = "Wipe cart A " ++ unique
+                    , createProductDescription = "First item"
+                    , createProductPrice = 3.3
+                    }
+                createRequestB = CreateProductRequest
+                    { createProductSellerId = 61
+                    , createProductTitle = "Wipe cart B " ++ unique
+                    , createProductDescription = "Second item"
+                    , createProductPrice = 4.4
+                    }
+
+            createdA <- runOrFail (clientEnv port) (createProductClient createRequestA)
+            createdB <- runOrFail (clientEnv port) (createProductClient createRequestB)
+            let userId = ProductDTO.id createdA * 10_000 + ProductDTO.id createdB
+
+            _ <- runOrFail (clientEnv port) (addProductToCartClient userId (AddCartRequest (ProductDTO.id createdA)))
+            _ <- runOrFail (clientEnv port) (addProductToCartClient userId (AddCartRequest (ProductDTO.id createdB)))
+
+            deleted <- runOrFail (clientEnv port) (deleteCartClient userId)
+            deleted `shouldBe` NoContent
+
+            cart <- runOrFail (clientEnv port) (getCartClient userId)
+            CartDTO.items cart `shouldBe` []
+            CartDTO.totalPrice cart `shouldBe` 0
+
+        it "DELETE /cart/{userId} is idempotent and returns 204 for empty cart" $ \port -> do
+            let userId = 8_888_888
+            deleted <- runOrFail (clientEnv port) (deleteCartClient userId)
+            deleted `shouldBe` NoContent
+
+            cart <- runOrFail (clientEnv port) (getCartClient userId)
+            CartDTO.items cart `shouldBe` []
+            CartDTO.totalPrice cart `shouldBe` 0
 
 runOrFail :: ClientEnv -> ClientM a -> IO a
 runOrFail env action = do

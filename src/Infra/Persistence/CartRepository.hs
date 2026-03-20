@@ -10,6 +10,7 @@ import Database.Persist
     ( Entity (Entity)
     , SelectOpt (Desc)
     , delete
+    , deleteWhere
     , getEntity
     , insert
     , selectList
@@ -46,6 +47,9 @@ runCartRepositoryDb = interpret $ \case
                 pool :: IO [Entity CartItemEntity]
             )
         pure (map toDomain entities)
+    DeleteCartByUserId userId -> do
+        pool <- ask
+        embed (runSqlPool @SqlBackend (deleteWhere [CartItemEntityUserId ==. userId]) pool :: IO ())
     AddProductToCart userId productId -> do
         pool <- ask
         let productKey = toSqlKey (fromIntegral productId) :: ProductEntityId

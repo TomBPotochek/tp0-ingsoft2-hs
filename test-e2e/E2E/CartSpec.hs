@@ -12,7 +12,7 @@ import API.DTO.Cart (AddCartRequest (..))
 import qualified API.DTO.Cart as CartDTO
 import API.DTO.Product (CreateProductRequest(..))
 import qualified API.DTO.Product as ProductDTO
-import E2E.Support (addProductToCartClient, createProductClient, deleteCartItemClient, deleteProductByIdClient, getCartClient, retryClient)
+import E2E.Support (addProductToCartClient, createProductClient, deleteCartClient, deleteCartItemClient, deleteProductByIdClient, getCartClient, retryClient)
 
 spec :: ClientEnv -> Spec
 spec env = do
@@ -161,3 +161,54 @@ spec env = do
                             CartDTO.totalPrice cartB `shouldBe` 0
                         (Left err, _) -> expectationFailure ("E2E request failed: " ++ err)
                         (_, Left err) -> expectationFailure ("E2E request failed: " ++ err)
+
+    describe "DELETE /cart/{userId}" $ do
+        it "wipes all items from a user's cart" $ do
+            let createRequestA = CreateProductRequest
+                    { createProductSellerId = 13
+                    , createProductTitle = "Wipe cart e2e A"
+                    , createProductDescription = "First item for wipe"
+                    , createProductPrice = 5.0
+                    }
+                createRequestB = CreateProductRequest
+                    { createProductSellerId = 14
+                    , createProductTitle = "Wipe cart e2e B"
+                    , createProductDescription = "Second item for wipe"
+                    , createProductPrice = 6.0
+                    }
+
+            createdAResult <- retryClient 20 env (createProductClient createRequestA)
+            createdBResult <- retryClient 20 env (createProductClient createRequestB)
+            case (createdAResult, createdBResult) of
+                (Right createdA, Right createdB) -> do
+                    let userId = ProductDTO.id createdA * 10_000 + ProductDTO.id createdB
+                    _ <- retryClient 20 env (addProductToCartClient userId (AddCartRequest (ProductDTO.id createdA)))
+                    _ <- retryClient 20 env (addProductToCartClient userId (AddCartRequest (ProductDTO.id createdB)))
+
+                    deleteResult <- retryClient 20 env (deleteCartClient userId)
+                    case deleteResult of
+                        Left deleteErr -> expectationFailure ("E2E request failed: " ++ deleteErr)
+                        Right _ -> pure ()
+
+                    cartResult <- retryClient 20 env (getCartClient userId)
+                    case cartResult of
+                        Left cartErr -> expectationFailure ("E2E request failed: " ++ cartErr)
+                        Right cart -> do
+                            CartDTO.items cart `shouldBe` []
+                            CartDTO.totalPrice cart `shouldBe` 0
+                (Left err, _) -> expectationFailure ("E2E setup failed: " ++ err)
+                (_, Left err) -> expectationFailure ("E2E setup failed: " ++ err)
+
+        it "is idempotent and succeeds for empty carts" $ do
+            let userId = 7_777_777
+            deleteResult <- retryClient 20 env (deleteCartClient userId)
+            case deleteResult of
+                Left deleteErr -> expectationFailure ("E2E request failed: " ++ deleteErr)
+                Right _ -> pure ()
+
+            cartResult <- retryClient 20 env (getCartClient userId)
+            case cartResult of
+                Left cartErr -> expectationFailure ("E2E request failed: " ++ cartErr)
+                Right cart -> do
+                    CartDTO.items cart `shouldBe` []
+                    CartDTO.totalPrice cart `shouldBe` 0

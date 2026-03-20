@@ -33,6 +33,10 @@ spec = with mkIntegrationApp $ do
         it "responds with 200" $ do
             request methodGet "/cart/123" [] "" `shouldRespondWith` 200
 
+    describe "DELETE /cart/{userId}" $ do
+        it "responds with 204" $ do
+            request methodDelete "/cart/123" [] "" `shouldRespondWith` 204
+
     describe "DELETE /cart/{userId}/items/{cartItemId}" $ do
         it "responds with 404 for a missing cart item" $ do
             request methodDelete "/cart/123/items/999999" [] "" `shouldRespondWith` 404
