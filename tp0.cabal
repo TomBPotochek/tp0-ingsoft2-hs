@@ -32,14 +32,15 @@ library
       Lib
       API.DTO.Product
       API.Routes
+      App.Error
       App.Effects.ProductRepository
+      App.Handlers.Product
+      App.ProductCreation
+      App.ProductUpdate
       Domain.Product
       Infra.Persistence.Models
       Infra.Persistence.Seed
   other-modules:
-      App.Error
-      App.Handlers.Product
-      App.ProductCreation
       Infra.Persistence.ProductRepository
   hs-source-dirs:
       src
@@ -184,6 +185,7 @@ test-suite tp0-test
   main-is: Main.hs
   other-modules:
       API.DTO.ProductSpec
+      App.Handlers.ProductSpec
   hs-source-dirs:
       test
   default-extensions:

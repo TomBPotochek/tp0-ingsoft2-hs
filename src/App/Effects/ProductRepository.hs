@@ -6,16 +6,19 @@ module App.Effects.ProductRepository
     , createProduct
     , getProductById
     , listProducts
+    , updateProductById
     ) where
 
 import Polysemy (makeSem)
 
 import App.ProductCreation (NewProduct)
+import App.ProductUpdate (ProductUpdate)
 import Domain.Product (Product)
 
 data ProductRepository m a where
     CreateProduct :: NewProduct -> ProductRepository m Product
     ListProducts :: ProductRepository m [Product]
     GetProductById :: Int -> ProductRepository m (Maybe Product)
+    UpdateProductById :: Int -> ProductUpdate -> ProductRepository m (Maybe Product)
 
 makeSem ''ProductRepository

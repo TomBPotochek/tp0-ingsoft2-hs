@@ -26,7 +26,7 @@ import System.Exit (die)
 import API.Routes (API, ProductAPI, api, productApi)
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository)
-import App.Handlers.Product (createProductHandler, getProductByIdHandler, listProductsHandler)
+import App.Handlers.Product (createProductHandler, getProductByIdHandler, listProductsHandler, updateProductByIdHandler)
 import Infra.Persistence.Models (migrateAll)
 import Infra.Persistence.ProductRepository (runProductRepositoryDb)
 import Infra.Persistence.Seed (seedDb)
@@ -48,7 +48,7 @@ app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 type AppEffects = '[ProductRepository, Reader ConnectionPool, Error AppError, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
-serverSem = (createProductHandler :<|> (listProductsHandler :<|> getProductByIdHandler)) :<|> pure openApiSpec
+serverSem = (createProductHandler :<|> (listProductsHandler :<|> (getProductByIdHandler :<|> updateProductByIdHandler))) :<|> pure openApiSpec
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =

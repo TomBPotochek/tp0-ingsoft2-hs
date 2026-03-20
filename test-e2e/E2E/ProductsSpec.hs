@@ -7,9 +7,9 @@ module E2E.ProductsSpec
 import Servant.Client (ClientEnv)
 import Test.Hspec (Spec, describe, expectationFailure, it, shouldBe)
 
-import API.DTO.Product (CreateProductRequest(..), ProductDTO(..))
+import API.DTO.Product (CreateProductRequest(..), ProductDTO(..), UpdateProductRequest(..))
 import qualified API.DTO.Product as ProductDTO
-import E2E.Support (createProductClient, getProductByIdClient, listProductsClient, retryClient)
+import E2E.Support (createProductClient, getProductByIdClient, listProductsClient, retryClient, updateProductByIdClient)
 
 
 spec :: ClientEnv -> Spec
@@ -72,3 +72,31 @@ spec env = do
                             title foundProduct `shouldBe` title createdProduct
                             description foundProduct `shouldBe` description createdProduct
                             price foundProduct `shouldBe` price createdProduct
+
+    describe "PUT /products/{id}" $ do
+        it "updates a product and returns updated data" $ do
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 5
+                    , createProductTitle = "Before update"
+                    , createProductDescription = "Old description"
+                    , createProductPrice = 20.0
+                    }
+                updateRequest = UpdateProductRequest
+                    { updateProductTitle = "After update"
+                    , updateProductDescription = "New description"
+                    , updateProductPrice = 25.5
+                    }
+
+            createdResult <- retryClient 20 env (createProductClient createRequest)
+            case createdResult of
+                Left err -> expectationFailure ("E2E setup failed: " ++ err)
+                Right createdProduct -> do
+                    updatedResult <- retryClient 20 env (updateProductByIdClient (ProductDTO.id createdProduct) updateRequest)
+                    case updatedResult of
+                        Left updateErr -> expectationFailure ("E2E request failed: " ++ updateErr)
+                        Right updatedProduct -> do
+                            ProductDTO.id updatedProduct `shouldBe` ProductDTO.id createdProduct
+                            sellerId updatedProduct `shouldBe` sellerId createdProduct
+                            title updatedProduct `shouldBe` updateProductTitle updateRequest
+                            description updatedProduct `shouldBe` updateProductDescription updateRequest
+                            price updatedProduct `shouldBe` updateProductPrice updateRequest

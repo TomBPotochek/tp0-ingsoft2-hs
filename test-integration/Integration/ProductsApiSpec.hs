@@ -13,14 +13,14 @@ import Servant ((:<|>) (..))
 import Servant.Client (BaseUrl (baseUrlPort), ClientEnv, ClientError (FailureResponse), ClientM, client, mkClientEnv, parseBaseUrl, runClientM)
 import Test.Hspec (Spec, around, expectationFailure, it, runIO, shouldBe, shouldSatisfy)
 
-import API.DTO.Product (CreateProductRequest (..), ProductDTO (..))
+import API.DTO.Product (CreateProductRequest (..), ProductDTO (..), UpdateProductRequest (..))
 import API.Routes (productApi)
 import Integration.Support (withIntegrationApp)
 
 spec :: Spec
 spec =
     around withIntegrationApp $ do
-        let createProductClient :<|> (listProductsClient :<|> getProductByIdClient) = client productApi
+        let createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> updateProductByIdClient)) = client productApi
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings
         let clientEnv port = mkClientEnv manager (baseUrl { baseUrlPort = port })
@@ -75,6 +75,44 @@ spec =
 
         it "GET /products/{id} returns 404 when the product does not exist" $ \port -> do
             result <- runClientM (getProductByIdClient 9_999_999) (clientEnv port)
+            result `shouldSatisfy` isLeft
+            case result of
+                Left (FailureResponse _ response) ->
+                    show response `shouldSatisfy` ("404" `isInfixOf`)
+                Left err -> expectationFailure ("expected 404 FailureResponse, got: " ++ show err)
+                Right _ -> expectationFailure "expected 404 but request succeeded"
+
+        it "PUT /products/{id} updates an existing product" $ \port -> do
+            unique <- uniqueSuffix
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 11
+                    , createProductTitle = "Original " ++ unique
+                    , createProductDescription = "Original description"
+                    , createProductPrice = 33.3
+                    }
+                updateRequest = UpdateProductRequest
+                    { updateProductTitle = "Updated " ++ unique
+                    , updateProductDescription = "Updated description"
+                    , updateProductPrice = 44.4
+                    }
+
+            created <- runOrFail (clientEnv port) (createProductClient createRequest)
+            updated <- runOrFail (clientEnv port) (updateProductByIdClient (ProductDTO.id created) updateRequest)
+
+            ProductDTO.id updated `shouldBe` ProductDTO.id created
+            sellerId updated `shouldBe` sellerId created
+            title updated `shouldBe` updateProductTitle updateRequest
+            description updated `shouldBe` updateProductDescription updateRequest
+            price updated `shouldBe` updateProductPrice updateRequest
+
+        it "PUT /products/{id} returns 404 when the product does not exist" $ \port -> do
+            let updateRequest = UpdateProductRequest
+                    { updateProductTitle = "No product"
+                    , updateProductDescription = "Missing"
+                    , updateProductPrice = 1.0
+                    }
+
+            result <- runClientM (updateProductByIdClient 9_999_999 updateRequest) (clientEnv port)
             result `shouldSatisfy` isLeft
             case result of
                 Left (FailureResponse _ response) ->

@@ -4,7 +4,7 @@ module Integration.ProductsHttpSpec
     ( spec
     ) where
 
-import Network.HTTP.Types (hContentType, methodGet, methodPost)
+import Network.HTTP.Types (hContentType, methodGet, methodPost, methodPut)
 import Test.Hspec (Spec, describe, it)
 import Test.Hspec.Wai (request, shouldRespondWith, with)
 
@@ -51,4 +51,21 @@ spec = with mkIntegrationApp $ do
                 "/products"
                 [(hContentType, "application/json")]
                 "{\"sellerId\":1,\"title\":\"   \",\"description\":\"x\",\"price\":9.99}"
+                `shouldRespondWith` 400
+
+    describe "PUT /products/{id}" $ do
+        it "responds with 404 for a missing product" $ do
+            request
+                methodPut
+                "/products/999999"
+                [(hContentType, "application/json")]
+                "{\"title\":\"x\",\"description\":\"y\",\"price\":1.0}"
+                `shouldRespondWith` 404
+
+        it "responds with 400 when business validation fails" $ do
+            request
+                methodPut
+                "/products/999999"
+                [(hContentType, "application/json")]
+                "{\"title\":\"   \",\"description\":\"y\",\"price\":1.0}"
                 `shouldRespondWith` 400

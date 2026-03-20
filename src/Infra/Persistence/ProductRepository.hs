@@ -5,13 +5,14 @@ module Infra.Persistence.ProductRepository
     ) where
 
 import Data.Time (getCurrentTime)
-import Database.Persist (Entity (Entity), Filter, SelectOpt, getEntity, insert, selectList)
+import Database.Persist (Entity (Entity), Filter, SelectOpt, getEntity, insert, replace, selectList)
 import Database.Persist.Sql (ConnectionPool, SqlBackend, runSqlPool, toSqlKey)
 import Polysemy (Embed, InterpreterFor, Members, embed, interpret)
 import Polysemy.Reader (Reader, ask)
 
 import App.Effects.ProductRepository (ProductRepository (..))
 import App.ProductCreation (NewProduct (..))
+import qualified App.ProductUpdate as ProductUpdate
 import Infra.Persistence.Models (ProductEntity (..), ProductEntityId, fromProductEntity)
 
 runProductRepositoryDb :: Members '[Reader ConnectionPool, Embed IO] r => InterpreterFor ProductRepository r
@@ -37,5 +38,21 @@ runProductRepositoryDb = interpret $ \case
         pool <- ask
         maybeEntity <- embed (runSqlPool @SqlBackend (getEntity (toSqlKey (fromIntegral productId) :: ProductEntityId)) pool :: IO (Maybe (Entity ProductEntity)))
         pure (toDomain <$> maybeEntity)
+    UpdateProductById productId productUpdate -> do
+        pool <- ask
+        let key = toSqlKey (fromIntegral productId) :: ProductEntityId
+        maybeExisting <- embed (runSqlPool @SqlBackend (getEntity key) pool :: IO (Maybe (Entity ProductEntity)))
+        case maybeExisting of
+            Nothing -> pure Nothing
+            Just (Entity _ existing) -> do
+                now <- embed getCurrentTime
+                let updated = existing { 
+                    productEntityTitle = ProductUpdate.title productUpdate
+                    , productEntityDescription = ProductUpdate.description productUpdate
+                    , productEntityPrice = ProductUpdate.price productUpdate
+                        , productEntityUpdatedAt = now
+                        }
+                embed (runSqlPool @SqlBackend (replace key updated) pool :: IO ())
+                pure (Just (fromProductEntity (key, updated)))
   where
     toDomain (Entity key entity) = fromProductEntity (key, entity)

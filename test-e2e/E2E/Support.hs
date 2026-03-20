@@ -6,6 +6,7 @@ module E2E.Support
     , createProductClient
     , getProductByIdClient
     , listProductsClient
+    , updateProductByIdClient
     ) where
 
 import System.Environment (lookupEnv)
@@ -14,7 +15,7 @@ import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Servant ((:<|>) (..))
 import Servant.Client (BaseUrl (BaseUrl), ClientEnv, ClientM, Scheme (Http), client, mkClientEnv, runClientM)
 
-import API.DTO.Product (CreateProductRequest, ProductDTO)
+import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
 import API.Routes (productApi)
 
 -- productClients :: (CreateProductRequest -> ClientM ProductDTO) :<|> ClientM [ProductDTO]
@@ -23,7 +24,8 @@ import API.Routes (productApi)
 createProductClient :: CreateProductRequest -> ClientM ProductDTO
 getProductByIdClient :: Int -> ClientM ProductDTO
 listProductsClient :: ClientM [ProductDTO]
-createProductClient :<|> (listProductsClient :<|> getProductByIdClient) = client productApi
+updateProductByIdClient :: Int -> UpdateProductRequest -> ClientM ProductDTO
+createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> updateProductByIdClient)) = client productApi
 
 mkEnv :: IO ClientEnv
 mkEnv = do

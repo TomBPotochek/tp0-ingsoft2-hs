@@ -3,7 +3,9 @@
 module API.DTO.Product
     ( ProductDTO(..)
     , CreateProductRequest(..)
+    , UpdateProductRequest(..)
     , toNewProduct
+    , toProductUpdate
     , toDTO
     ) where
 
@@ -22,6 +24,7 @@ import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 
 import App.ProductCreation (NewProduct (..))
+import qualified App.ProductUpdate as ProductUpdate
 import Domain.Product (Product(..))
 
 data ProductDTO = ProductDTO
@@ -55,6 +58,21 @@ instance ToJSON CreateProductRequest where
 
 instance ToSchema CreateProductRequest
 
+data UpdateProductRequest = UpdateProductRequest
+    { updateProductTitle :: String
+    , updateProductDescription :: String
+    , updateProductPrice :: Double
+    }
+    deriving (Show, Eq, Generic)
+
+instance FromJSON UpdateProductRequest where
+    parseJSON = genericParseJSON updateProductInputJSONOptions
+
+instance ToJSON UpdateProductRequest where
+    toJSON = genericToJSON updateProductInputJSONOptions
+
+instance ToSchema UpdateProductRequest
+
 createProductInputJSONOptions :: Options
 createProductInputJSONOptions = defaultOptions
     { fieldLabelModifier = dropCreateProductPrefix }
@@ -62,6 +80,17 @@ createProductInputJSONOptions = defaultOptions
 dropCreateProductPrefix :: String -> String
 dropCreateProductPrefix fieldName =
     case stripPrefix "createProduct" fieldName of
+        Nothing -> fieldName
+        Just [] -> []
+        Just (x:xs) -> toLower x : xs
+
+updateProductInputJSONOptions :: Options
+updateProductInputJSONOptions = defaultOptions
+    { fieldLabelModifier = dropUpdateProductPrefix }
+
+dropUpdateProductPrefix :: String -> String
+dropUpdateProductPrefix fieldName =
+    case stripPrefix "updateProduct" fieldName of
         Nothing -> fieldName
         Just [] -> []
         Just (x:xs) -> toLower x : xs
@@ -74,6 +103,13 @@ toNewProduct input =
         , description = createProductDescription input
         , price = createProductPrice input
         }
+
+toProductUpdate :: UpdateProductRequest -> ProductUpdate.ProductUpdate
+toProductUpdate input =
+    ProductUpdate.ProductUpdate
+        (updateProductTitle input)
+        (updateProductDescription input)
+        (updateProductPrice input)
 
 toDTO :: Product -> ProductDTO
 toDTO domainProduct =

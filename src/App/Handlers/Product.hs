@@ -2,11 +2,12 @@ module App.Handlers.Product
     ( createProductHandler
     , getProductByIdHandler
     , listProductsHandler
+    , updateProductByIdHandler
     ) where
 
-import API.DTO.Product (CreateProductRequest (..), ProductDTO, toDTO, toNewProduct)
+import API.DTO.Product (CreateProductRequest (..), ProductDTO, UpdateProductRequest (..), toDTO, toNewProduct, toProductUpdate)
 import App.Error (AppError (..))
-import App.Effects.ProductRepository (ProductRepository, createProduct, getProductById, listProducts)
+import App.Effects.ProductRepository (ProductRepository, createProduct, getProductById, listProducts, updateProductById)
 import Data.Char (isSpace)
 import Polysemy (Member, Members, Sem)
 import Polysemy.Error (Error, throw)
@@ -26,11 +27,27 @@ getProductByIdHandler productId = do
         Just foundProduct -> pure (toDTO foundProduct)
         Nothing -> throw (ProductNotFound productId)
 
+updateProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> UpdateProductRequest -> Sem r ProductDTO
+updateProductByIdHandler productId req = do
+    validateUpdateProductRequest req
+    maybeUpdated <- updateProductById productId (toProductUpdate req)
+    case maybeUpdated of
+        Just updatedProduct -> pure (toDTO updatedProduct)
+        Nothing -> throw (ProductNotFound productId)
+
 validateCreateProductRequest :: Member (Error AppError) r => CreateProductRequest -> Sem r ()
 validateCreateProductRequest req
     | null (trim (createProductTitle req)) =
         throw (InvalidInput (Just "title") "title must not be blank")
     | createProductPrice req < 0.01 =
+        throw (InvalidInput (Just "price") "price must be >= 0.01")
+    | otherwise = pure ()
+
+validateUpdateProductRequest :: Member (Error AppError) r => UpdateProductRequest -> Sem r ()
+validateUpdateProductRequest req
+    | null (trim (updateProductTitle req)) =
+        throw (InvalidInput (Just "title") "title must not be blank")
+    | updateProductPrice req < 0.01 =
         throw (InvalidInput (Just "price") "price must be >= 0.01")
     | otherwise = pure ()
 
