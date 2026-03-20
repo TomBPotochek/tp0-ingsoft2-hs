@@ -2,7 +2,9 @@
 
 module API.DTO.Cart
     ( AddCartRequest(..)
+    , CartDTO(..)
     , CartItemDTO(..)
+    , toCartDTO
     , toDTO
     ) where
 
@@ -14,8 +16,6 @@ import Data.Aeson
     , genericParseJSON
     , genericToJSON
     )
-import Data.Char (toLower)
-import Data.List (stripPrefix)
 import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
@@ -49,6 +49,17 @@ instance FromJSON CartItemDTO
 instance ToJSON CartItemDTO
 instance ToSchema CartItemDTO
 
+data CartDTO = CartDTO
+    { userId :: Int
+    , items :: [CartItemDTO]
+    , totalPrice :: Double
+    }
+    deriving (Show, Eq, Generic)
+
+instance FromJSON CartDTO
+instance ToJSON CartDTO
+instance ToSchema CartDTO
+
 addCartInputJSONOptions :: Options
 addCartInputJSONOptions = defaultOptions
     { fieldLabelModifier = dropAddCartPrefix }
@@ -64,4 +75,12 @@ toDTO domainItem =
         , title = cartItemTitle domainItem
         , unitPrice = cartItemUnitPrice domainItem
         , addedAt = cartItemAddedAt domainItem
+        }
+
+toCartDTO :: Int -> [CartItem] -> CartDTO
+toCartDTO cartUserId cartItems =
+    CartDTO
+        { userId = cartUserId
+        , items = map toDTO cartItems
+        , totalPrice = sum (map cartItemUnitPrice cartItems)
         }

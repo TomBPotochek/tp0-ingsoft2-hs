@@ -47,6 +47,7 @@ library
   other-modules:
       Infra.Persistence.CartRepository
       Infra.Persistence.ProductRepository
+      API.DTO.Support
   hs-source-dirs:
       src
   default-extensions:

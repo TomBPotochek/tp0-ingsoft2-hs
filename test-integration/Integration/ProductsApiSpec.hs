@@ -24,7 +24,11 @@ spec :: Spec
 spec =
     around withIntegrationApp $ do
         let createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> (updateProductByIdClient :<|> deleteProductByIdClient))) = client productApi
-            addProductToCartClient = client cartApi
+            cartClient = client cartApi
+            getCartClient userId = case cartClient userId of
+                getClient :<|> _ -> getClient
+            addProductToCartClient userId request = case cartClient userId of
+                _ :<|> addClient -> addClient request
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings
         let clientEnv port = mkClientEnv manager (baseUrl { baseUrlPort = port })
@@ -173,6 +177,37 @@ spec =
                     show response `shouldSatisfy` ("404" `isInfixOf`)
                 Left err -> expectationFailure ("expected 404 FailureResponse, got: " ++ show err)
                 Right _ -> expectationFailure "expected 404 but request succeeded"
+
+        it "GET /cart/{userId} returns an empty cart for unknown user" $ \port -> do
+            cart <- runOrFail (clientEnv port) (getCartClient 999_999)
+            CartDTO.userId cart `shouldBe` 999_999
+            CartDTO.items cart `shouldBe` []
+            CartDTO.totalPrice cart `shouldBe` 0
+
+        it "GET /cart/{userId} returns items ordered by addedAt desc then id desc and totalPrice" $ \port -> do
+            unique <- uniqueSuffix
+            let createRequestA = CreateProductRequest
+                    { createProductSellerId = 30
+                    , createProductTitle = "Cart order A " ++ unique
+                    , createProductDescription = "First item"
+                    , createProductPrice = 10.0
+                    }
+                createRequestB = CreateProductRequest
+                    { createProductSellerId = 31
+                    , createProductTitle = "Cart order B " ++ unique
+                    , createProductDescription = "Second item"
+                    , createProductPrice = 15.5
+                    }
+
+            createdA <- runOrFail (clientEnv port) (createProductClient createRequestA)
+            createdB <- runOrFail (clientEnv port) (createProductClient createRequestB)
+            _ <- runOrFail (clientEnv port) (addProductToCartClient 321 (AddCartRequest (ProductDTO.id createdA)))
+            _ <- runOrFail (clientEnv port) (addProductToCartClient 321 (AddCartRequest (ProductDTO.id createdB)))
+
+            cart <- runOrFail (clientEnv port) (getCartClient 321)
+            CartDTO.userId cart `shouldBe` 321
+            map CartDTO.productId (CartDTO.items cart) `shouldBe` [ProductDTO.id createdB, ProductDTO.id createdA]
+            CartDTO.totalPrice cart `shouldBe` (ProductDTO.price createdA + ProductDTO.price createdB)
 
 runOrFail :: ClientEnv -> ClientM a -> IO a
 runOrFail env action = do

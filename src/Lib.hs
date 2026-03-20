@@ -20,7 +20,7 @@ import Polysemy (Embed, Sem, Members)
 import Polysemy (runM)
 import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
-import Servant (Handler, NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, (:<|>) (..), hoistServer, serve)
+import Servant (NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, (:<|>) (..), hoistServer, serve)
 import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
@@ -29,7 +29,7 @@ import API.Routes (API, CartAPI, ProductAPI, api)
 import App.Effects.CartRepository (CartRepository)
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository)
-import App.Handlers.Cart (addProductToCartHandler)
+import App.Handlers.Cart (addProductToCartHandler, getCartHandler)
 import App.Handlers.Product (createProductHandler, deleteProductByIdHandler, getProductByIdHandler, listProductsHandler, updateProductByIdHandler)
 import Infra.Persistence.CartRepository (runCartRepositoryDb)
 import Infra.Persistence.Models (migrateAll)
@@ -63,7 +63,7 @@ serverSem =
         )
       )
     )
-      :<|> addProductToCartHandler
+        :<|> (\userId -> getCartHandler userId :<|> addProductToCartHandler userId)
   :<|> pure openApiSpec
 
 -- this sem->handler interpreter purposely doesn't have a top level signature to let the 

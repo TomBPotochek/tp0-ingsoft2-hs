@@ -90,3 +90,7 @@ spec = with mkIntegrationApp $ do
                 [(hContentType, "application/json")]
                 "{invalid"
                 `shouldRespondWith` 400
+
+    describe "GET /cart/{userId}" $ do
+        it "responds with 200" $ do
+            request methodGet "/cart/123" [] "" `shouldRespondWith` 200

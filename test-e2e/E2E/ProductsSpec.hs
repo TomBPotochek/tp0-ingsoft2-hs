@@ -12,7 +12,7 @@ import API.DTO.Cart (AddCartRequest (..))
 import qualified API.DTO.Cart as CartDTO
 import API.DTO.Product (CreateProductRequest(..), UpdateProductRequest(..))
 import qualified API.DTO.Product as ProductDTO
-import E2E.Support (addProductToCartClient, createProductClient, deleteProductByIdClient, getProductByIdClient, listProductsClient, retryClient, updateProductByIdClient)
+import E2E.Support (addProductToCartClient, createProductClient, deleteProductByIdClient, getCartClient, getProductByIdClient, listProductsClient, retryClient, updateProductByIdClient)
 
 
 spec :: ClientEnv -> Spec
@@ -145,3 +145,43 @@ spec env = do
                             CartDTO.productId cartItem `shouldBe` ProductDTO.id createdProduct
                             CartDTO.title cartItem `shouldBe` ProductDTO.title createdProduct
                             CartDTO.unitPrice cartItem `shouldBe` ProductDTO.price createdProduct
+
+    describe "GET /cart/{userId}" $ do
+        it "returns an empty cart for a user without items" $ do
+            cartResult <- retryClient 20 env (getCartClient 404_404)
+            case cartResult of
+                Left err -> expectationFailure ("E2E request failed: " ++ err)
+                Right cart -> do
+                    CartDTO.userId cart `shouldBe` 404_404
+                    CartDTO.items cart `shouldBe` []
+                    CartDTO.totalPrice cart `shouldBe` 0
+
+        it "returns user cart items ordered newest first with totalPrice" $ do
+            let createRequestA = CreateProductRequest
+                    { createProductSellerId = 8
+                    , createProductTitle = "Cart item A"
+                    , createProductDescription = "First"
+                    , createProductPrice = 11.0
+                    }
+                createRequestB = CreateProductRequest
+                    { createProductSellerId = 9
+                    , createProductTitle = "Cart item B"
+                    , createProductDescription = "Second"
+                    , createProductPrice = 22.0
+                    }
+
+            createdAResult <- retryClient 20 env (createProductClient createRequestA)
+            createdBResult <- retryClient 20 env (createProductClient createRequestB)
+
+            case (createdAResult, createdBResult) of
+                (Right createdA, Right createdB) -> do
+                    _ <- retryClient 20 env (addProductToCartClient 66 (AddCartRequest (ProductDTO.id createdA)))
+                    _ <- retryClient 20 env (addProductToCartClient 66 (AddCartRequest (ProductDTO.id createdB)))
+                    cartResult <- retryClient 20 env (getCartClient 66)
+                    case cartResult of
+                        Left err -> expectationFailure ("E2E request failed: " ++ err)
+                        Right cart -> do
+                            map CartDTO.productId (CartDTO.items cart) `shouldBe` [ProductDTO.id createdB, ProductDTO.id createdA]
+                            CartDTO.totalPrice cart `shouldBe` 33.0
+                (Left err, _) -> expectationFailure ("E2E setup failed: " ++ err)
+                (_, Left err) -> expectationFailure ("E2E setup failed: " ++ err)

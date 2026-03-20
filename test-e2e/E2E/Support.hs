@@ -3,6 +3,7 @@
 module E2E.Support
     ( mkEnv
     , addProductToCartClient
+    , getCartClient
     , retryClient
     , createProductClient
     , deleteProductByIdClient
@@ -18,7 +19,7 @@ import Servant (NoContent)
 import Servant ((:<|>) (..))
 import Servant.Client (BaseUrl (BaseUrl), ClientEnv, ClientM, Scheme (Http), client, mkClientEnv, runClientM)
 
-import API.DTO.Cart (AddCartRequest, CartItemDTO)
+import API.DTO.Cart (AddCartRequest, CartDTO, CartItemDTO)
 import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
 import API.Routes (cartApi, productApi)
 
@@ -33,7 +34,17 @@ deleteProductByIdClient :: Int -> ClientM NoContent
 createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> (updateProductByIdClient :<|> deleteProductByIdClient))) = client productApi
 
 addProductToCartClient :: Int -> AddCartRequest -> ClientM CartItemDTO
-addProductToCartClient = client cartApi
+getCartClient :: Int -> ClientM CartDTO
+cartClient :: Int -> ClientM CartDTO :<|> (AddCartRequest -> ClientM CartItemDTO)
+cartClient = client cartApi
+
+getCartClient userId =
+    case cartClient userId of
+        getClient :<|> _ -> getClient
+
+addProductToCartClient userId request =
+    case cartClient userId of
+        _ :<|> addClient -> addClient request
 
 mkEnv :: IO ClientEnv
 mkEnv = do

@@ -4,9 +4,10 @@ module Infra.Persistence.CartRepository
     ( runCartRepositoryDb
     ) where
 
+import Data.List (sortBy)
 import Data.Time (getCurrentTime)
-import Database.Persist (Entity (Entity), getEntity, insert)
-import Database.Persist.Sql (ConnectionPool, SqlBackend, runSqlPool, toSqlKey)
+import Database.Persist (Entity (Entity), entityVal, getEntity, insert, selectList)
+import Database.Persist.Sql (ConnectionPool, SqlBackend, fromSqlKey, runSqlPool, toSqlKey)
 import Polysemy (Embed, InterpreterFor, Members, embed, interpret)
 import Polysemy.Reader (Reader, ask)
 
@@ -15,6 +16,12 @@ import Infra.Persistence.Models (CartItemEntity (..), CartItemEntityId, ProductE
 
 runCartRepositoryDb :: Members '[Reader ConnectionPool, Embed IO] r => InterpreterFor CartRepository r
 runCartRepositoryDb = interpret $ \case
+    GetCartByUserId userId -> do
+        pool <- ask
+        entities <- embed (runSqlPool @SqlBackend (selectList [] []) pool :: IO [Entity CartItemEntity])
+        let filtered = filter ((== userId) . cartItemEntityUserId . entityVal) entities
+            ordered = sortBy compareCartItems filtered
+        pure (map toDomain ordered)
     AddProductToCart userId productId -> do
         pool <- ask
         let productKey = toSqlKey (fromIntegral productId) :: ProductEntityId
@@ -32,3 +39,10 @@ runCartRepositoryDb = interpret $ \case
                         }
                 cartItemKey <- embed (runSqlPool @SqlBackend (insert cartItem) pool :: IO CartItemEntityId)
                 pure (Just (fromCartItemEntity (cartItemKey, cartItem)))
+    where
+        compareCartItems (Entity keyA itemA) (Entity keyB itemB) =
+            compare
+                (cartItemEntityAddedAt itemB, fromSqlKey keyB)
+                (cartItemEntityAddedAt itemA, fromSqlKey keyA)
+
+        toDomain (Entity key entity) = fromCartItemEntity (key, entity)

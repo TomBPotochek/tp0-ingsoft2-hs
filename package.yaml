@@ -81,6 +81,7 @@ library:
   other-modules:
   - Infra.Persistence.CartRepository
   - Infra.Persistence.ProductRepository
+  - API.DTO.Support
   when:
   - condition: flag(local-dev)
     dependencies:

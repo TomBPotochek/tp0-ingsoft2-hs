@@ -1,12 +1,18 @@
 module App.Handlers.Cart
-    ( addProductToCartHandler
+    ( getCartHandler
+    , addProductToCartHandler
     ) where
 
-import API.DTO.Cart (AddCartRequest (..), CartItemDTO, toDTO)
-import App.Effects.CartRepository (CartRepository, addProductToCart)
+import API.DTO.Cart (AddCartRequest (..), CartDTO, CartItemDTO, toCartDTO, toDTO)
+import App.Effects.CartRepository (CartRepository, addProductToCart, getCartByUserId)
 import App.Error (AppError (ProductNotFound))
 import Polysemy (Members, Sem)
 import Polysemy.Error (Error, throw)
+
+getCartHandler :: Members '[CartRepository] r => Int -> Sem r CartDTO
+getCartHandler userId = do
+    cartItems <- getCartByUserId userId
+    pure (toCartDTO userId cartItems)
 
 addProductToCartHandler :: Members '[CartRepository, Error AppError] r => Int -> AddCartRequest -> Sem r CartItemDTO
 addProductToCartHandler userId request = do
