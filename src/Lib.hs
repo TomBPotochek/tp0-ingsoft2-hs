@@ -19,7 +19,7 @@ import Polysemy (Embed, Sem)
 import Polysemy (runM)
 import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
-import Servant (Handler, Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, (:<|>) (..), hoistServer, serve)
+import Servant (Handler, NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, (:<|>) (..), hoistServer, serve)
 import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
@@ -27,7 +27,7 @@ import System.Exit (die)
 import API.Routes (API, ProductAPI, api, productApi)
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository)
-import App.Handlers.Product (createProductHandler, getProductByIdHandler, listProductsHandler, updateProductByIdHandler)
+import App.Handlers.Product (createProductHandler, deleteProductByIdHandler, getProductByIdHandler, listProductsHandler, updateProductByIdHandler)
 import Infra.Persistence.Models (migrateAll)
 import Infra.Persistence.ProductRepository (runProductRepositoryDb)
 import Infra.Persistence.Seed (seedDb)
@@ -49,7 +49,17 @@ app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 type AppEffects = '[ProductRepository, Reader ConnectionPool, Error AppError, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
-serverSem = (createProductHandler :<|> (listProductsHandler :<|> (getProductByIdHandler :<|> updateProductByIdHandler))) :<|> pure openApiSpec
+serverSem =
+    ( createProductHandler
+  :<|> ( listProductsHandler
+    :<|> ( getProductByIdHandler
+      :<|> ( updateProductByIdHandler
+        :<|> (\productId -> deleteProductByIdHandler productId >> pure NoContent)
+          )
+        )
+      )
+    )
+  :<|> pure openApiSpec
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =

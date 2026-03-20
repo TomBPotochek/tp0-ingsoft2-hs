@@ -10,6 +10,7 @@ import qualified API.DTO.Product as ProductDTO
 import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Servant ((:<|>) (..))
+import Servant (NoContent (NoContent))
 import Servant.Client (BaseUrl (baseUrlPort), ClientEnv, ClientError (FailureResponse), ClientM, client, mkClientEnv, parseBaseUrl, runClientM)
 import Test.Hspec (Spec, around, expectationFailure, it, runIO, shouldBe, shouldSatisfy)
 
@@ -20,7 +21,7 @@ import Integration.Support (withIntegrationApp)
 spec :: Spec
 spec =
     around withIntegrationApp $ do
-        let createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> updateProductByIdClient)) = client productApi
+        let createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> (updateProductByIdClient :<|> deleteProductByIdClient))) = client productApi
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings
         let clientEnv port = mkClientEnv manager (baseUrl { baseUrlPort = port })
@@ -113,6 +114,31 @@ spec =
                     }
 
             result <- runClientM (updateProductByIdClient 9_999_999 updateRequest) (clientEnv port)
+            result `shouldSatisfy` isLeft
+            case result of
+                Left (FailureResponse _ response) ->
+                    show response `shouldSatisfy` ("404" `isInfixOf`)
+                Left err -> expectationFailure ("expected 404 FailureResponse, got: " ++ show err)
+                Right _ -> expectationFailure "expected 404 but request succeeded"
+
+        it "DELETE /products/{id} deletes an existing product" $ \port -> do
+            unique <- uniqueSuffix
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 12
+                    , createProductTitle = "Delete me " ++ unique
+                    , createProductDescription = "To be deleted"
+                    , createProductPrice = 22.2
+                    }
+
+            created <- runOrFail (clientEnv port) (createProductClient createRequest)
+            deleted <- runOrFail (clientEnv port) (deleteProductByIdClient (ProductDTO.id created))
+            deleted `shouldBe` NoContent
+
+            getAfterDelete <- runClientM (getProductByIdClient (ProductDTO.id created)) (clientEnv port)
+            getAfterDelete `shouldSatisfy` isLeft
+
+        it "DELETE /products/{id} returns 404 when the product does not exist" $ \port -> do
+            result <- runClientM (deleteProductByIdClient 9_999_999) (clientEnv port)
             result `shouldSatisfy` isLeft
             case result of
                 Left (FailureResponse _ response) ->

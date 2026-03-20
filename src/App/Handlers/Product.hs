@@ -1,5 +1,6 @@
 module App.Handlers.Product
     ( createProductHandler
+    , deleteProductByIdHandler
     , getProductByIdHandler
     , listProductsHandler
     , updateProductByIdHandler
@@ -7,7 +8,7 @@ module App.Handlers.Product
 
 import API.DTO.Product (CreateProductRequest (..), ProductDTO, UpdateProductRequest (..), toDTO, toNewProduct, toProductUpdate)
 import App.Error (AppError (..))
-import App.Effects.ProductRepository (ProductRepository, createProduct, getProductById, listProducts, updateProductById)
+import App.Effects.ProductRepository (ProductRepository, createProduct, deleteProductById, getProductById, listProducts, updateProductById)
 import Data.Char (isSpace)
 import Polysemy (Member, Members, Sem)
 import Polysemy.Error (Error, throw)
@@ -34,6 +35,13 @@ updateProductByIdHandler productId req = do
     case maybeUpdated of
         Just updatedProduct -> pure (toDTO updatedProduct)
         Nothing -> throw (ProductNotFound productId)
+
+deleteProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> Sem r ()
+deleteProductByIdHandler productId = do
+    deleted <- deleteProductById productId
+    if deleted
+        then pure ()
+        else throw (ProductNotFound productId)
 
 validateCreateProductRequest :: Member (Error AppError) r => CreateProductRequest -> Sem r ()
 validateCreateProductRequest req

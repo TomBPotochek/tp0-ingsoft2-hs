@@ -4,7 +4,7 @@ module Integration.ProductsHttpSpec
     ( spec
     ) where
 
-import Network.HTTP.Types (hContentType, methodGet, methodPost, methodPut)
+import Network.HTTP.Types (hContentType, methodDelete, methodGet, methodPost, methodPut)
 import Test.Hspec (Spec, describe, it)
 import Test.Hspec.Wai (request, shouldRespondWith, with)
 
@@ -69,3 +69,7 @@ spec = with mkIntegrationApp $ do
                 [(hContentType, "application/json")]
                 "{\"title\":\"   \",\"description\":\"y\",\"price\":1.0}"
                 `shouldRespondWith` 400
+
+    describe "DELETE /products/{id}" $ do
+        it "responds with 404 for a missing product" $ do
+            request methodDelete "/products/999999" [] "" `shouldRespondWith` 404

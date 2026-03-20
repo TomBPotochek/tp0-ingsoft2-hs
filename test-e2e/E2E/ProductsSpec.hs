@@ -4,12 +4,13 @@ module E2E.ProductsSpec
     ( spec
     ) where
 
+import Data.Either (isLeft)
 import Servant.Client (ClientEnv)
-import Test.Hspec (Spec, describe, expectationFailure, it, shouldBe)
+import Test.Hspec (Spec, describe, expectationFailure, it, shouldBe, shouldSatisfy)
 
 import API.DTO.Product (CreateProductRequest(..), ProductDTO(..), UpdateProductRequest(..))
 import qualified API.DTO.Product as ProductDTO
-import E2E.Support (createProductClient, getProductByIdClient, listProductsClient, retryClient, updateProductByIdClient)
+import E2E.Support (createProductClient, deleteProductByIdClient, getProductByIdClient, listProductsClient, retryClient, updateProductByIdClient)
 
 
 spec :: ClientEnv -> Spec
@@ -100,3 +101,24 @@ spec env = do
                             title updatedProduct `shouldBe` updateProductTitle updateRequest
                             description updatedProduct `shouldBe` updateProductDescription updateRequest
                             price updatedProduct `shouldBe` updateProductPrice updateRequest
+
+    describe "DELETE /products/{id}" $ do
+        it "deletes an existing product" $ do
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 6
+                    , createProductTitle = "Delete candidate"
+                    , createProductDescription = "Will be deleted"
+                    , createProductPrice = 18.0
+                    }
+
+            createdResult <- retryClient 20 env (createProductClient createRequest)
+            case createdResult of
+                Left err -> expectationFailure ("E2E setup failed: " ++ err)
+                Right createdProduct -> do
+                    deleteResult <- retryClient 20 env (deleteProductByIdClient (ProductDTO.id createdProduct))
+                    case deleteResult of
+                        Left deleteErr -> expectationFailure ("E2E request failed: " ++ deleteErr)
+                        Right _ -> pure ()
+
+                    getResult <- retryClient 20 env (getProductByIdClient (ProductDTO.id createdProduct))
+                    getResult `shouldSatisfy` isLeft

@@ -4,6 +4,7 @@ module E2E.Support
     ( mkEnv
     , retryClient
     , createProductClient
+    , deleteProductByIdClient
     , getProductByIdClient
     , listProductsClient
     , updateProductByIdClient
@@ -12,6 +13,7 @@ module E2E.Support
 import System.Environment (lookupEnv)
 import Control.Concurrent (threadDelay)
 import Network.HTTP.Client (defaultManagerSettings, newManager)
+import Servant (NoContent)
 import Servant ((:<|>) (..))
 import Servant.Client (BaseUrl (BaseUrl), ClientEnv, ClientM, Scheme (Http), client, mkClientEnv, runClientM)
 
@@ -25,7 +27,8 @@ createProductClient :: CreateProductRequest -> ClientM ProductDTO
 getProductByIdClient :: Int -> ClientM ProductDTO
 listProductsClient :: ClientM [ProductDTO]
 updateProductByIdClient :: Int -> UpdateProductRequest -> ClientM ProductDTO
-createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> updateProductByIdClient)) = client productApi
+deleteProductByIdClient :: Int -> ClientM NoContent
+createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> (updateProductByIdClient :<|> deleteProductByIdClient))) = client productApi
 
 mkEnv :: IO ClientEnv
 mkEnv = do

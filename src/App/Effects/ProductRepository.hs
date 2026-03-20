@@ -4,6 +4,7 @@
 module App.Effects.ProductRepository
     ( ProductRepository(..)
     , createProduct
+    , deleteProductById
     , getProductById
     , listProducts
     , updateProductById
@@ -20,5 +21,6 @@ data ProductRepository m a where
     ListProducts :: ProductRepository m [Product]
     GetProductById :: Int -> ProductRepository m (Maybe Product)
     UpdateProductById :: Int -> ProductUpdate -> ProductRepository m (Maybe Product)
+    DeleteProductById :: Int -> ProductRepository m Bool
 
 makeSem ''ProductRepository

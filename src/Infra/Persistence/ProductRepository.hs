@@ -5,7 +5,7 @@ module Infra.Persistence.ProductRepository
     ) where
 
 import Data.Time (getCurrentTime)
-import Database.Persist (Entity (Entity), Filter, SelectOpt, getEntity, insert, replace, selectList)
+import Database.Persist (Entity (Entity), Filter, SelectOpt, delete, getEntity, insert, replace, selectList)
 import Database.Persist.Sql (ConnectionPool, SqlBackend, runSqlPool, toSqlKey)
 import Polysemy (Embed, InterpreterFor, Members, embed, interpret)
 import Polysemy.Reader (Reader, ask)
@@ -54,5 +54,14 @@ runProductRepositoryDb = interpret $ \case
                         }
                 embed (runSqlPool @SqlBackend (replace key updated) pool :: IO ())
                 pure (Just (fromProductEntity (key, updated)))
+    DeleteProductById productId -> do
+        pool <- ask
+        let key = toSqlKey (fromIntegral productId) :: ProductEntityId
+        maybeExisting <- embed (runSqlPool @SqlBackend (getEntity key) pool :: IO (Maybe (Entity ProductEntity)))
+        case maybeExisting of
+            Nothing -> pure False
+            Just _ -> do
+                embed (runSqlPool @SqlBackend (delete key) pool :: IO ())
+                pure True
   where
     toDomain (Entity key entity) = fromProductEntity (key, entity)

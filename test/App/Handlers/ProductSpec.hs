@@ -153,3 +153,11 @@ runProductRepositoryInMemory = interpret $ \case
                     updatedProducts = map (\p -> if productId p == requestedId then updated else p) (repoProducts st)
                 put st {repoProducts = updatedProducts}
                 pure (Just updated)
+    DeleteProductById requestedId -> do
+        modify (\st -> st {repoCalls = repoCalls st + 1})
+        st <- get
+        let exists = any ((== requestedId) . productId) (repoProducts st)
+            remaining = filter ((/= requestedId) . productId) (repoProducts st)
+        if exists
+            then put st {repoProducts = remaining} >> pure True
+            else pure False

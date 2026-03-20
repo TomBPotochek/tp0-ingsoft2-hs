@@ -9,7 +9,7 @@ module API.Routes
     ) where
 
 import Data.OpenApi (OpenApi)
-import Servant (Capture, Get, JSON, Post, Proxy(..), Put, ReqBody, Summary, (:<|>), (:>))
+import Servant (Capture, DeleteNoContent, Get, JSON, Post, Proxy(..), Put, ReqBody, Summary, (:<|>), (:>))
 
 import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
 
@@ -28,6 +28,9 @@ type ProductAPI =
                 :> Capture "id" Int
                 :> ReqBody '[JSON] UpdateProductRequest
                 :> Put '[JSON] ProductDTO
+                :<|> Summary "Delete a product by id"
+                :> Capture "id" Int
+                :> DeleteNoContent
             )
 
 type API = ProductAPI :<|> "openapi.json" :> Get '[JSON] OpenApi
