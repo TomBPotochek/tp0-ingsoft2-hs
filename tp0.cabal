@@ -206,6 +206,7 @@ test-suite tp0-test
   main-is: Main.hs
   other-modules:
       API.DTO.ProductSpec
+      App.Handlers.CartSpec
       App.Handlers.ProductSpec
   hs-source-dirs:
       test

@@ -127,6 +127,7 @@ tests:
     source-dirs:         test
     other-modules:
     - API.DTO.ProductSpec
+    - App.Handlers.CartSpec
     - App.Handlers.ProductSpec
     ghc-options:
     - -threaded
