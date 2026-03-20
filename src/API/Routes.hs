@@ -15,7 +15,7 @@ module API.Routes
 
 import Data.OpenApi (OpenApi)
 import GHC.Generics (Generic)
-import Servant (Capture, DeleteNoContent, Get, JSON, NamedRoutes, Post, Proxy(..), Put, ReqBody, Summary, (:<|>), type (:-), type (:>))
+import Servant (Capture, DeleteNoContent, Get, JSON, NamedRoutes, PostCreated, Proxy(..), Put, ReqBody, Summary, (:<|>), type (:-), type (:>))
 
 import API.DTO.Cart (AddCartRequest, CartDTO, CartItemDTO)
 import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
@@ -25,7 +25,7 @@ data ProductRoutes mode = ProductRoutes
         mode
             :- Summary "Create a new product"
             :> ReqBody '[JSON] CreateProductRequest
-            :> Post '[JSON] ProductDTO
+            :> PostCreated '[JSON] ProductDTO
     , listProductsRoute ::
         mode
             :- Summary "Retrieve all products"
@@ -63,7 +63,7 @@ data CartByUserRoutes mode = CartByUserRoutes
             :- "items"
             :> Summary "Add product to user's cart"
             :> ReqBody '[JSON] AddCartRequest
-            :> Post '[JSON] CartItemDTO
+            :> PostCreated '[JSON] CartItemDTO
     , deleteCartItemRoute ::
         mode
             :- "items"
