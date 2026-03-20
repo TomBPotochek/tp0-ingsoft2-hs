@@ -1,4 +1,4 @@
-.PHONY: app unit integration e2e down down-e2e down-integration clean build local-bootstrap local-build local-docs local-docs-project
+.PHONY: app unit integration e2e down down-e2e down-integration clean build local-bootstrap local-build local-docs local-docs-project local-test local-test-integration local-test-e2e
 
 STACK_LOCAL ?= stack.local.yaml
 
@@ -42,3 +42,14 @@ local-docs: local-bootstrap
 
 local-docs-project: local-bootstrap
 	stack --stack-yaml $(STACK_LOCAL) build --haddock --no-haddock-deps
+
+local-test: local-bootstrap
+	stack --stack-yaml $(STACK_LOCAL) test tp0:test:tp0-test
+
+local-test-integration: local-bootstrap
+	stack --stack-yaml $(STACK_LOCAL) test tp0:test:tp0-integration
+
+local-test-e2e: local-bootstrap
+	# this target is meant for typechecking the E2E tests, not for running them, 
+	# since they require the server to be running and the test environment to be set up
+	stack --stack-yaml $(STACK_LOCAL) test tp0:test:tp0-e2e --no-run-tests
