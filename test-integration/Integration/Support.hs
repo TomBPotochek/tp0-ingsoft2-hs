@@ -5,7 +5,7 @@ module Integration.Support
     , mkIntegrationApp
     ) where
 
-import Control.Monad.Logger (runNoLoggingT)
+import Control.Monad.Logger (runStdoutLoggingT)
 import Data.String (fromString)
 import Database.Persist.Postgresql (ConnectionString, createPostgresqlPool)
 import Database.Persist.Sql (runMigration, runSqlPool)
@@ -26,9 +26,9 @@ withIntegrationApp action =
 mkIntegrationApp :: IO Application
 mkIntegrationApp = do
     connStr <- getIntegrationConnectionString
-    pool <- runNoLoggingT (createPostgresqlPool connStr 1)
-    runNoLoggingT (runSqlPool (runMigration migrateAll) pool)
-    pure (app pool)
+    pool <- runStdoutLoggingT (createPostgresqlPool connStr 1)
+    runStdoutLoggingT (runSqlPool (runMigration migrateAll) pool)
+    pure (app pool True)
 
 getIntegrationConnectionString :: IO ConnectionString
 getIntegrationConnectionString = do

@@ -58,6 +58,8 @@ library
       aeson
     , base >=4.7 && <5
     , bytestring
+    , co-log-core
+    , co-log-polysemy
     , http-client
     , http-client-tls
     , monad-logger
@@ -96,6 +98,8 @@ executable tp0
       aeson
     , base
     , bytestring
+    , co-log-core
+    , co-log-polysemy
     , http-client
     , http-client-tls
     , monad-logger
@@ -131,6 +135,8 @@ executable tp0-e2e
       aeson
     , base
     , bytestring
+    , co-log-core
+    , co-log-polysemy
     , hspec
     , http-client
     , http-client-tls
@@ -170,6 +176,8 @@ test-suite tp0-integration
       aeson
     , base
     , bytestring
+    , co-log-core
+    , co-log-polysemy
     , hspec
     , hspec-wai
     , http-client
@@ -209,6 +217,8 @@ test-suite tp0-test
       aeson
     , base
     , bytestring
+    , co-log-core
+    , co-log-polysemy
     , hspec
     , http-client
     , http-client-tls

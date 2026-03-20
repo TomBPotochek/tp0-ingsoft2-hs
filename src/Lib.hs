@@ -6,8 +6,13 @@ module Lib
   , app
     ) where
 
-import Control.Monad.Logger (runNoLoggingT)
+import Prelude hiding (log)
+import Control.Monad.Logger (runNoLoggingT, runStdoutLoggingT)
+import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
+import Colog.Core.Action (cmap)
+import Colog.Core.IO (logStringStdout)
+import Colog.Polysemy (Log, log, runLogAction)
 import Data.Aeson (encode, object, (.=))
 import Data.String (fromString)
 import Data.Function ((&))
@@ -16,7 +21,7 @@ import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
 import Data.OpenApi (OpenApi)
 import Network.Wai
 import Network.Wai.Handler.Warp
-import Polysemy (Embed, Sem, Members)
+import Polysemy (Embed, Member, Members, Sem)
 import Polysemy (runM)
 import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
@@ -40,38 +45,57 @@ import Infra.Persistence.Seed (seedDb)
 startApp :: IO ()
 startApp = do
   connStr <- getConnectionString
-  pool <- runNoLoggingT $ createPostgresqlPool connStr 10
-  runNoLoggingT $ runSqlPool (runMigration migrateAll) pool
+  environment <- lookupEnv "ENVIRONMENT"
+  let isDevelopment = environment == Just "development"
+      isProduction = environment == Just "production"
+  loggingEnabled <- getLoggingEnabled isProduction
+  pool <- if loggingEnabled
+    then runStdoutLoggingT $ createPostgresqlPool connStr 10
+    else runNoLoggingT $ createPostgresqlPool connStr 10
+  if loggingEnabled
+    then runStdoutLoggingT $ runSqlPool (runMigration migrateAll) pool
+    else runNoLoggingT $ runSqlPool (runMigration migrateAll) pool
   host <- getServerHost
   port <- getServerPort
-  shouldSeed <- lookupEnv "ENVIRONMENT"
-  case shouldSeed of
-    Just "development" -> seedDb pool
-    _                  -> pure ()
-  runSettings (setPort port (setHost (fromString host) defaultSettings)) (app pool)
+  when isDevelopment (seedDb pool)
+  runSettings (setPort port (setHost (fromString host) defaultSettings)) (app pool loggingEnabled)
 
-app :: ConnectionPool -> Application
-app pool = serve api (hoistServer api (semToHandler pool) serverSem)
+app :: ConnectionPool -> Bool -> Application
+app pool loggingEnabled = serve api (hoistServer api (semToHandler pool loggingEnabled) serverSem)
 
-type AppEffects r = Members '[ProductRepository, CartRepository, Reader ConnectionPool, Error AppError, Embed IO] r
+data Severity = Debug | Info | Warning | Error
+  deriving (Show)
+
+data AppLog = AppLog
+  { appLogSeverity :: Severity
+  , appLogMessage :: String
+  }
+
+renderAppLog :: AppLog -> String
+renderAppLog appLog = "[" ++ show (appLogSeverity appLog) ++ "] " ++ appLogMessage appLog
+
+logInfoMsg :: Member (Log AppLog) r => String -> Sem r ()
+logInfoMsg msg = log (AppLog Info msg)
+
+type AppEffects r = Members '[Log AppLog, ProductRepository, CartRepository, Reader ConnectionPool, Error AppError, Embed IO] r
 
 serverSem ::AppEffects r => ServerT API (Sem r)
 serverSem =
   ApiRoutes
     { productsRoutes =
         ProductRoutes
-          { createProductRoute = createProductHandler
-          , listProductsRoute = listProductsHandler
-          , getProductByIdRoute = getProductByIdHandler
-          , updateProductByIdRoute = updateProductByIdHandler
-          , deleteProductByIdRoute = \productId -> deleteProductByIdHandler productId >> pure NoContent
+          { createProductRoute = \req -> logInfoMsg "POST /products" >> createProductHandler req
+          , listProductsRoute = logInfoMsg "GET /products" >> listProductsHandler
+          , getProductByIdRoute = \productId -> logInfoMsg "GET /products/{id}" >> getProductByIdHandler productId
+          , updateProductByIdRoute = \productId req -> logInfoMsg "PUT /products/{id}" >> updateProductByIdHandler productId req
+          , deleteProductByIdRoute = \productId -> logInfoMsg "DELETE /products/{id}" >> deleteProductByIdHandler productId >> pure NoContent
           }
     , cartRoutes = \userId ->
         CartByUserRoutes
-          { getCartRoute = getCartHandler userId
-          , deleteCartRoute = deleteCartHandler userId
-          , addProductToCartRoute = addProductToCartHandler userId
-          , deleteCartItemRoute = deleteCartItemHandler userId
+          { getCartRoute = logInfoMsg "GET /cart/{userId}" >> getCartHandler userId
+          , deleteCartRoute = logInfoMsg "DELETE /cart/{userId}" >> deleteCartHandler userId
+          , addProductToCartRoute = \req -> logInfoMsg "POST /cart/{userId}/items" >> addProductToCartHandler userId req
+          , deleteCartItemRoute = \cartItemId -> logInfoMsg "DELETE /cart/{userId}/items/{cartItemId}" >> deleteCartItemHandler userId cartItemId
           }
     , openApiJsonRoute = pure openApiSpec
     }
@@ -82,15 +106,45 @@ serverSem =
 -- | Sem program to Servant Handler Interpreter/natural transformation.. 
 -- It runs the Sem program by interpreting the effects stack against the db connection pool, 
 -- and translating AppErrors into Servant ServerErrors.
-semToHandler pool sem =
+semToHandler pool loggingEnabled sem =
   do
-    result <- liftIO $ sem
-      & runProductRepositoryDb 
-      & runCartRepositoryDb
-      & runReader pool 
-      & runError 
-      & runM 
+    result <- liftIO $
+      sem
+        & (if loggingEnabled
+             then runLogAction @IO (cmap renderAppLog logStringStdout)
+             else runLogAction @IO mempty)
+        & runProductRepositoryDb
+        & runCartRepositoryDb
+        & runReader pool
+        & runError
+        & runM
     either (throwError . appErrorToServerError) pure result
+
+getLoggingEnabled :: Bool -> IO Bool
+getLoggingEnabled isProduction = do
+  value <- lookupEnv "LOG_ENABLED"
+  case fmap parseBool value of
+    Just (Just b) -> pure b
+    _ -> pure (not isProduction)
+
+parseBool :: String -> Maybe Bool
+parseBool raw =
+  case raw of
+    "1" -> Just True
+    "0" -> Just False
+    "true" -> Just True
+    "false" -> Just False
+    "yes" -> Just True
+    "no" -> Just False
+    "on" -> Just True
+    "off" -> Just False
+    "TRUE" -> Just True
+    "FALSE" -> Just False
+    "YES" -> Just True
+    "NO" -> Just False
+    "ON" -> Just True
+    "OFF" -> Just False
+    _ -> Nothing
 
 appErrorToServerError :: AppError -> ServerError
 appErrorToServerError appError =
