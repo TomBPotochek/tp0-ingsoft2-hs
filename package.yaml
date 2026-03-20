@@ -71,6 +71,7 @@ library:
   - Infra.Persistence.Models
   - Infra.Persistence.Seed
   other-modules:
+  - App.Error
   - App.Handlers.Product
   - App.ProductCreation
   - Infra.Persistence.ProductRepository

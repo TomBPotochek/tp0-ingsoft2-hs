@@ -15,7 +15,7 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Polysemy (Embed, Sem)
 import Polysemy (runM)
-import Polysemy.Error (Error, runError, throw)
+import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
 import Servant (Handler, Proxy(..), ServerError, ServerT, err404, errBody, throwError, (:<|>) (..), hoistServer, serve)
 import Servant.OpenApi (toOpenApi)
@@ -23,7 +23,7 @@ import System.Environment (lookupEnv)
 import System.Exit (die)
 
 import API.Routes (API, ProductAPI, api, productApi)
-import API.DTO.Product (ProductDTO)
+import App.Error (AppError (ProductNotFound))
 import App.Effects.ProductRepository (ProductRepository)
 import App.Handlers.Product (createProductHandler, getProductByIdHandler, listProductsHandler)
 import Infra.Persistence.Models (migrateAll)
@@ -44,25 +44,21 @@ startApp = do
 app :: ConnectionPool -> Application
 app pool = serve api (hoistServer api (semToHandler pool) serverSem)
 
-type AppEffects = '[ProductRepository, Reader ConnectionPool, Error ServerError, Embed IO]
+type AppEffects = '[ProductRepository, Reader ConnectionPool, Error AppError, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
-serverSem = (createProductHandler :<|> (listProductsHandler :<|> getProductByIdServer)) :<|> pure openApiSpec
-
-getProductByIdServer :: Int -> Sem AppEffects ProductDTO
-getProductByIdServer productId = do
-  maybeProduct <- getProductByIdHandler productId
-  case maybeProduct of
-    Just foundProduct -> pure foundProduct
-    Nothing -> throw notFoundError
-  where
-    notFoundError = err404 {errBody = L8.pack ("Product with id " ++ show productId ++ " not found")}
+serverSem = (createProductHandler :<|> (listProductsHandler :<|> getProductByIdHandler)) :<|> pure openApiSpec
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
   do
     result <- liftIO $ runM (runError (runReader pool (runProductRepositoryDb sem)))
-    either throwError pure result
+    either (throwError . appErrorToServerError) pure result
+
+appErrorToServerError :: AppError -> ServerError
+appErrorToServerError appError =
+  case appError of
+    ProductNotFound productId -> err404 {errBody = L8.pack ("Product with id " ++ show productId ++ " not found")}
 
 openApiSpec :: OpenApi
 openApiSpec = toOpenApi (productApi :: Proxy ProductAPI)
