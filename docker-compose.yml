@@ -14,8 +14,13 @@ services:
         build:
             context: .
             target: tester
+        image: tp0-tester
+        command: ["stack", "test", "tp0:test:tp0-test"]
         environment:
             DATABASE_URL: postgresql://app_user:app_pass@postgres:5432/app_db
+        volumes:
+            - stack_root_cache:/root/.stack
+            - stack_work_cache:/app/user/.stack-work
         depends_on:
             postgres:
                 condition: service_healthy
@@ -25,9 +30,13 @@ services:
         build:
             context: .
             target: tester
+        image: tp0-tester
         command: ["stack", "test", "tp0:test:tp0-integration"]
         environment:
             INTEGRATION_DATABASE_URL: postgresql://integration_user:integration_pass@postgres-integration:5432/integration_db
+        volumes:
+            - stack_root_cache:/root/.stack
+            - stack_work_cache:/app/user/.stack-work
         depends_on:
             postgres-integration:
                 condition: service_healthy
@@ -104,6 +113,8 @@ services:
 
 volumes:
     postgres_app_data:
+    stack_root_cache:
+    stack_work_cache:
 
 networks:
     e2e:

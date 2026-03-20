@@ -9,7 +9,7 @@ app:
 	docker compose up app
 
 unit:
-	docker compose --profile test run --rm unit-tests
+	docker compose --profile test run --build --rm unit-tests
 
 integration:
 	docker compose --profile integration up --build --abort-on-container-exit --exit-code-from integration-tests integration-tests
