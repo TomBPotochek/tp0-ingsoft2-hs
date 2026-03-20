@@ -23,7 +23,7 @@ withIntegrationApp action =
 mkIntegrationApp :: IO Application
 mkIntegrationApp = do
     connStr <- getIntegrationConnectionString
-    pool <- runNoLoggingT (createPostgresqlPool connStr 5)
+    pool <- runNoLoggingT (createPostgresqlPool connStr 1)
     runNoLoggingT (runSqlPool (runMigration migrateAll) pool)
     pure (app pool)
 

@@ -70,6 +70,7 @@ library:
   - Infra.Persistence.Models
   - Infra.Persistence.Seed
   other-modules:
+  - App.Handlers.Product
   - App.ProductCreation
   - Infra.Persistence.ProductRepository
   when:

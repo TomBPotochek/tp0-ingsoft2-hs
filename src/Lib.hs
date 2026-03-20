@@ -20,9 +20,9 @@ import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
 
-import API.DTO.Product (toDTO, toNewProduct)
 import API.Routes (API, ProductAPI, api, productApi)
-import App.Effects.ProductRepository (ProductRepository, createProduct, listProducts)
+import App.Effects.ProductRepository (ProductRepository)
+import App.Handlers.Product (createProductHandler, listProductsHandler)
 import Infra.Persistence.Models (migrateAll)
 import Infra.Persistence.ProductRepository (runProductRepositoryDb)
 import Infra.Persistence.Seed (seedDb)
@@ -45,9 +45,6 @@ type AppEffects = '[ProductRepository, Reader ConnectionPool, Embed IO]
 
 serverSem :: ServerT API (Sem AppEffects)
 serverSem = (createProductHandler :<|> listProductsHandler) :<|> pure openApiSpec
-  where
-    createProductHandler req = toDTO <$> createProduct (toNewProduct req)
-    listProductsHandler = map toDTO <$> listProducts
 
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
