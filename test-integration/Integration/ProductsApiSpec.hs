@@ -203,13 +203,40 @@ spec =
 
             createdA <- runOrFail (clientEnv port) (createProductClient createRequestA)
             createdB <- runOrFail (clientEnv port) (createProductClient createRequestB)
-            _ <- runOrFail (clientEnv port) (addProductToCartClient 321 (AddCartRequest (ProductDTO.id createdA)))
-            _ <- runOrFail (clientEnv port) (addProductToCartClient 321 (AddCartRequest (ProductDTO.id createdB)))
+            let testUserId = ProductDTO.id createdA * 10_000 + ProductDTO.id createdB
+            _ <- runOrFail (clientEnv port) (addProductToCartClient testUserId (AddCartRequest (ProductDTO.id createdA)))
+            _ <- runOrFail (clientEnv port) (addProductToCartClient testUserId (AddCartRequest (ProductDTO.id createdB)))
 
-            cart <- runOrFail (clientEnv port) (getCartClient 321)
-            CartDTO.userId cart `shouldBe` 321
+            cart <- runOrFail (clientEnv port) (getCartClient testUserId)
+            CartDTO.userId cart `shouldBe` testUserId
             map CartDTO.productId (CartDTO.items cart) `shouldBe` [ProductDTO.id createdB, ProductDTO.id createdA]
             CartDTO.totalPrice cart `shouldBe` (ProductDTO.price createdA + ProductDTO.price createdB)
+
+        it "DELETE /products/{id} removes that product's items from all carts" $ \port -> do
+            unique <- uniqueSuffix
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 40
+                    , createProductTitle = "Cascade Product " ++ unique
+                    , createProductDescription = "Used to verify cart cascade"
+                    , createProductPrice = 12.5
+                    }
+
+            created <- runOrFail (clientEnv port) (createProductClient createRequest)
+            let userA = ProductDTO.id created * 10_000 + 1
+                userB = ProductDTO.id created * 10_000 + 2
+
+            _ <- runOrFail (clientEnv port) (addProductToCartClient userA (AddCartRequest (ProductDTO.id created)))
+            _ <- runOrFail (clientEnv port) (addProductToCartClient userB (AddCartRequest (ProductDTO.id created)))
+
+            _ <- runOrFail (clientEnv port) (deleteProductByIdClient (ProductDTO.id created))
+
+            cartA <- runOrFail (clientEnv port) (getCartClient userA)
+            cartB <- runOrFail (clientEnv port) (getCartClient userB)
+
+            CartDTO.items cartA `shouldBe` []
+            CartDTO.items cartB `shouldBe` []
+            CartDTO.totalPrice cartA `shouldBe` 0
+            CartDTO.totalPrice cartB `shouldBe` 0
 
 runOrFail :: ClientEnv -> ClientM a -> IO a
 runOrFail env action = do

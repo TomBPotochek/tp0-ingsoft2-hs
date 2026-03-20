@@ -186,3 +186,36 @@ spec env = do
                             CartDTO.totalPrice cart `shouldBe` 33.0
                 (Left err, _) -> expectationFailure ("E2E setup failed: " ++ err)
                 (_, Left err) -> expectationFailure ("E2E setup failed: " ++ err)
+
+        it "removes product items from all carts after deleting that product" $ do
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 10
+                    , createProductTitle = "Cascade cart cleanup"
+                    , createProductDescription = "Deleted product should clean carts"
+                    , createProductPrice = 13.0
+                    }
+
+            createdResult <- retryClient 20 env (createProductClient createRequest)
+            case createdResult of
+                Left err -> expectationFailure ("E2E setup failed: " ++ err)
+                Right createdProduct -> do
+                    let userA = ProductDTO.id createdProduct * 10_000 + 3
+                        userB = ProductDTO.id createdProduct * 10_000 + 4
+                    _ <- retryClient 20 env (addProductToCartClient userA (AddCartRequest (ProductDTO.id createdProduct)))
+                    _ <- retryClient 20 env (addProductToCartClient userB (AddCartRequest (ProductDTO.id createdProduct)))
+
+                    deleteResult <- retryClient 20 env (deleteProductByIdClient (ProductDTO.id createdProduct))
+                    case deleteResult of
+                        Left deleteErr -> expectationFailure ("E2E request failed: " ++ deleteErr)
+                        Right _ -> pure ()
+
+                    cartAResult <- retryClient 20 env (getCartClient userA)
+                    cartBResult <- retryClient 20 env (getCartClient userB)
+                    case (cartAResult, cartBResult) of
+                        (Right cartA, Right cartB) -> do
+                            CartDTO.items cartA `shouldBe` []
+                            CartDTO.items cartB `shouldBe` []
+                            CartDTO.totalPrice cartA `shouldBe` 0
+                            CartDTO.totalPrice cartB `shouldBe` 0
+                        (Left err, _) -> expectationFailure ("E2E request failed: " ++ err)
+                        (_, Left err) -> expectationFailure ("E2E request failed: " ++ err)
