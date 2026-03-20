@@ -16,35 +16,31 @@ import System.Environment (lookupEnv)
 import Control.Concurrent (threadDelay)
 import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Servant (NoContent)
-import Servant ((:<|>) (..))
-import Servant.Client (BaseUrl (BaseUrl), ClientEnv, ClientM, Scheme (Http), client, mkClientEnv, runClientM)
+import Servant.Client (BaseUrl (BaseUrl), ClientEnv, ClientM, Scheme (Http), mkClientEnv, runClientM)
+import Servant.Client.Generic (AsClientT, genericClient)
 
 import API.DTO.Cart (AddCartRequest, CartDTO, CartItemDTO)
 import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
-import API.Routes (cartApi, productApi)
-
--- productClients :: (CreateProductRequest -> ClientM ProductDTO) :<|> ClientM [ProductDTO]
--- productClients = client productApi
+import API.Routes (ApiRoutes (..), CartByUserRoutes (..), ProductRoutes (..))
 
 createProductClient :: CreateProductRequest -> ClientM ProductDTO
 getProductByIdClient :: Int -> ClientM ProductDTO
 listProductsClient :: ClientM [ProductDTO]
 updateProductByIdClient :: Int -> UpdateProductRequest -> ClientM ProductDTO
 deleteProductByIdClient :: Int -> ClientM NoContent
-createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> (updateProductByIdClient :<|> deleteProductByIdClient))) = client productApi
+createProductClient = createProductRoute (productsRoutes apiClient)
+getProductByIdClient = getProductByIdRoute (productsRoutes apiClient)
+listProductsClient = listProductsRoute (productsRoutes apiClient)
+updateProductByIdClient = updateProductByIdRoute (productsRoutes apiClient)
+deleteProductByIdClient = deleteProductByIdRoute (productsRoutes apiClient)
 
 addProductToCartClient :: Int -> AddCartRequest -> ClientM CartItemDTO
 getCartClient :: Int -> ClientM CartDTO
-cartClient :: Int -> ClientM CartDTO :<|> (AddCartRequest -> ClientM CartItemDTO)
-cartClient = client cartApi
+getCartClient userId = getCartRoute (cartRoutes apiClient userId)
+addProductToCartClient userId request = addProductToCartRoute (cartRoutes apiClient userId) request
 
-getCartClient userId =
-    case cartClient userId of
-        getClient :<|> _ -> getClient
-
-addProductToCartClient userId request =
-    case cartClient userId of
-        _ :<|> addClient -> addClient request
+apiClient :: ApiRoutes (AsClientT ClientM)
+apiClient = genericClient
 
 mkEnv :: IO ClientEnv
 mkEnv = do

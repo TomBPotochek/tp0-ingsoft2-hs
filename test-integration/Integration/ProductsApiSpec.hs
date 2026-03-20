@@ -11,24 +11,26 @@ import qualified API.DTO.Cart as CartDTO
 import qualified API.DTO.Product as ProductDTO
 import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Data.Time.Clock.POSIX (getPOSIXTime)
-import Servant ((:<|>) (..))
 import Servant (NoContent (NoContent))
-import Servant.Client (BaseUrl (baseUrlPort), ClientEnv, ClientError (FailureResponse), ClientM, client, mkClientEnv, parseBaseUrl, runClientM)
+import Servant.Client (BaseUrl (baseUrlPort), ClientEnv, ClientError (FailureResponse), ClientM, mkClientEnv, parseBaseUrl, runClientM)
+import Servant.Client.Generic (AsClientT, genericClient)
 import Test.Hspec (Spec, around, expectationFailure, it, runIO, shouldBe, shouldSatisfy)
 
 import API.DTO.Product (CreateProductRequest (..), UpdateProductRequest (..))
-import API.Routes (cartApi, productApi)
+import API.Routes (ApiRoutes (..), CartByUserRoutes (..), ProductRoutes (..))
 import Integration.Support (withIntegrationApp)
 
 spec :: Spec
 spec =
     around withIntegrationApp $ do
-        let createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> (updateProductByIdClient :<|> deleteProductByIdClient))) = client productApi
-            cartClient = client cartApi
-            getCartClient userId = case cartClient userId of
-                getClient :<|> _ -> getClient
-            addProductToCartClient userId request = case cartClient userId of
-                _ :<|> addClient -> addClient request
+        let apiClient = genericClient :: ApiRoutes (AsClientT ClientM)
+            createProductClient = createProductRoute (productsRoutes apiClient)
+            listProductsClient = listProductsRoute (productsRoutes apiClient)
+            getProductByIdClient = getProductByIdRoute (productsRoutes apiClient)
+            updateProductByIdClient = updateProductByIdRoute (productsRoutes apiClient)
+            deleteProductByIdClient = deleteProductByIdRoute (productsRoutes apiClient)
+            getCartClient userId = getCartRoute (cartRoutes apiClient userId)
+            addProductToCartClient userId request = addProductToCartRoute (cartRoutes apiClient userId) request
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings
         let clientEnv port = mkClientEnv manager (baseUrl { baseUrlPort = port })

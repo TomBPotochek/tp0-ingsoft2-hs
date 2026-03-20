@@ -67,6 +67,7 @@ library
     , persistent-template
     , polysemy
     , servant-client
+    , servant-client-core
     , servant-openapi3
     , servant-server
     , text
@@ -104,6 +105,7 @@ executable tp0
     , persistent-template
     , polysemy
     , servant-client
+    , servant-client-core
     , servant-openapi3
     , servant-server
     , text
@@ -138,6 +140,7 @@ executable tp0-e2e
     , persistent-template
     , polysemy
     , servant-client
+    , servant-client-core
     , servant-openapi3
     , servant-server
     , text
@@ -176,6 +179,7 @@ test-suite tp0-integration
     , persistent-template
     , polysemy
     , servant-client
+    , servant-client-core
     , servant-openapi3
     , servant-server
     , text
@@ -212,6 +216,7 @@ test-suite tp0-test
     , persistent-template
     , polysemy
     , servant-client
+    , servant-client-core
     , servant-openapi3
     , servant-server
     , text

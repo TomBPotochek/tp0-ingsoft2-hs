@@ -28,6 +28,7 @@ dependencies:
 - text
 - time
 - servant-client
+- servant-client-core
 - servant-openapi3
 - servant-server
 - wai

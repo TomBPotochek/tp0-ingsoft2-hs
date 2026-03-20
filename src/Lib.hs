@@ -20,12 +20,12 @@ import Polysemy (Embed, Sem, Members)
 import Polysemy (runM)
 import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
-import Servant (NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, (:<|>) (..), hoistServer, serve)
+import Servant (NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, hoistServer, serve)
 import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
 
-import API.Routes (API, CartAPI, ProductAPI, api)
+import API.Routes (API, ApiRoutes (..), CartByUserRoutes (..), OpenApiAPI, ProductRoutes (..), api)
 import App.Effects.CartRepository (CartRepository)
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository)
@@ -54,17 +54,22 @@ type AppEffects r = Members '[ProductRepository, CartRepository, Reader Connecti
 
 serverSem ::AppEffects r => ServerT API (Sem r)
 serverSem =
-    ( createProductHandler
-  :<|> ( listProductsHandler
-    :<|> ( getProductByIdHandler
-      :<|> ( updateProductByIdHandler
-        :<|> (\productId -> deleteProductByIdHandler productId >> pure NoContent)
-          )
-        )
-      )
-    )
-        :<|> (\userId -> getCartHandler userId :<|> addProductToCartHandler userId)
-  :<|> pure openApiSpec
+  ApiRoutes
+    { productsRoutes =
+        ProductRoutes
+          { createProductRoute = createProductHandler
+          , listProductsRoute = listProductsHandler
+          , getProductByIdRoute = getProductByIdHandler
+          , updateProductByIdRoute = updateProductByIdHandler
+          , deleteProductByIdRoute = \productId -> deleteProductByIdHandler productId >> pure NoContent
+          }
+    , cartRoutes = \userId ->
+        CartByUserRoutes
+          { getCartRoute = getCartHandler userId
+          , addProductToCartRoute = addProductToCartHandler userId
+          }
+    , openApiJsonRoute = pure openApiSpec
+    }
 
 -- this sem->handler interpreter purposely doesn't have a top level signature to let the 
 -- type system infer it, because it will depend on the order or composition of the interpreters in semToHandler
@@ -124,7 +129,7 @@ formatValidationDetail maybeField detail =
     Just field -> field ++ ": " ++ detail
 
 openApiSpec :: OpenApi
-openApiSpec = toOpenApi (Proxy :: Proxy (ProductAPI :<|> CartAPI))
+openApiSpec = toOpenApi (Proxy :: Proxy OpenApiAPI)
 
 getConnectionString :: IO ConnectionString
 getConnectionString = do
