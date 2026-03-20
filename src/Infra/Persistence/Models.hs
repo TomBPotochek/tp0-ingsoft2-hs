@@ -2,6 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -12,6 +13,9 @@ module Infra.Persistence.Models
     , ProductEntityId
     , CartItemEntity(..)
     , CartItemEntityId
+    , pattern CartItemEntityUserId
+    , pattern CartItemEntityAddedAt
+    , pattern CartItemEntityId
     , migrateAll
     , fromCartItemEntity
     , fromProductEntity

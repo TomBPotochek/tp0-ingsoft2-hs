@@ -77,10 +77,10 @@ toDTO domainItem =
         , addedAt = cartItemAddedAt domainItem
         }
 
-toCartDTO :: Int -> [CartItem] -> CartDTO
-toCartDTO cartUserId cartItems =
+toCartDTO :: Int -> Double -> [CartItem] -> CartDTO
+toCartDTO cartUserId total cartItems =
     CartDTO
         { userId = cartUserId
         , items = map toDTO cartItems
-        , totalPrice = sum (map cartItemUnitPrice cartItems)
+        , totalPrice = total
         }
