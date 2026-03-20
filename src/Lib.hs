@@ -9,6 +9,7 @@ import Control.Monad.Logger (runNoLoggingT)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (encode, object, (.=))
 import Data.String (fromString)
+import Data.Function ((&))
 import Database.Persist.Postgresql (ConnectionString, createPostgresqlPool)
 import Database.Persist.Sql (ConnectionPool, runMigration, runSqlPool)
 import Data.OpenApi (OpenApi)
@@ -53,7 +54,11 @@ serverSem = (createProductHandler :<|> (listProductsHandler :<|> (getProductById
 semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
   do
-    result <- liftIO $ runM (runError (runReader pool (runProductRepositoryDb sem)))
+    result <- liftIO $ sem
+      & runProductRepositoryDb 
+      & runReader pool 
+      & runError 
+      & runM 
     either (throwError . appErrorToServerError) pure result
 
 appErrorToServerError :: AppError -> ServerError

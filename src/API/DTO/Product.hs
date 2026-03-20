@@ -77,23 +77,22 @@ createProductInputJSONOptions :: Options
 createProductInputJSONOptions = defaultOptions
     { fieldLabelModifier = dropCreateProductPrefix }
 
-dropCreateProductPrefix :: String -> String
-dropCreateProductPrefix fieldName =
-    case stripPrefix "createProduct" fieldName of
+dropPrefixFromFields :: String -> String -> String
+dropPrefixFromFields prefix fieldName =
+    case stripPrefix prefix fieldName of
         Nothing -> fieldName
         Just [] -> []
         Just (x:xs) -> toLower x : xs
+
+dropCreateProductPrefix :: String -> String
+dropCreateProductPrefix = dropPrefixFromFields "createProduct"
 
 updateProductInputJSONOptions :: Options
 updateProductInputJSONOptions = defaultOptions
     { fieldLabelModifier = dropUpdateProductPrefix }
 
 dropUpdateProductPrefix :: String -> String
-dropUpdateProductPrefix fieldName =
-    case stripPrefix "updateProduct" fieldName of
-        Nothing -> fieldName
-        Just [] -> []
-        Just (x:xs) -> toLower x : xs
+dropUpdateProductPrefix = dropPrefixFromFields "updateProduct"
 
 toNewProduct :: CreateProductRequest -> NewProduct
 toNewProduct input =

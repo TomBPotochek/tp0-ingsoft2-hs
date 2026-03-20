@@ -6,6 +6,7 @@ import Data.List (find)
 import Data.Time.Calendar (fromGregorian)
 import Data.Time.Clock (UTCTime (..), secondsToDiffTime)
 import Test.Hspec (Spec, describe, it, shouldBe)
+import Data.Function ((&))
 
 import API.DTO.Product (CreateProductRequest (..), UpdateProductRequest (..))
 import App.Effects.ProductRepository (ProductRepository (..))
@@ -100,12 +101,11 @@ fixedTime = UTCTime (fromGregorian 2026 3 20) (secondsToDiffTime 0)
 runWithInMemoryRepo :: RepoState -> Sem '[ProductRepository, Error AppError, State RepoState] a -> (Either AppError a, RepoState)
 runWithInMemoryRepo initialState sem =
     let (finalState, result) =
-            run
-                ( runState initialState
-                    ( runError
-                        (runProductRepositoryInMemory sem)
-                    )
-                )
+            sem 
+            & runProductRepositoryInMemory 
+            & runError 
+            & runState initialState 
+            & run 
      in (result, finalState)
 
 runProductRepositoryInMemory :: Members '[State RepoState] r => InterpreterFor ProductRepository r
