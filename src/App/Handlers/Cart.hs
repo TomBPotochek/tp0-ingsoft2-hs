@@ -1,12 +1,14 @@
 module App.Handlers.Cart
     ( getCartHandler
     , addProductToCartHandler
+    , deleteCartItemHandler
     ) where
 
 import API.DTO.Cart (AddCartRequest (..), CartDTO, CartItemDTO, toCartDTO, toDTO)
-import App.Effects.CartRepository (CartRepository, addProductToCart, getCartByUserId)
-import App.Error (AppError (ProductNotFound))
+import App.Effects.CartRepository (CartRepository, addProductToCart, deleteCartItemById, getCartByUserId)
+import App.Error (AppError (CartItemNotFound, ProductNotFound))
 import Domain.CartItem (cartItemUnitPrice)
+import Servant (NoContent (NoContent))
 import Polysemy (Members, Sem)
 import Polysemy.Error (Error, throw)
 
@@ -22,3 +24,10 @@ addProductToCartHandler userId request = do
     case maybeCartItem of
         Just cartItem -> pure (toDTO cartItem)
         Nothing -> throw (ProductNotFound (addCartProductId request))
+
+deleteCartItemHandler :: Members '[CartRepository, Error AppError] r => Int -> Int -> Sem r NoContent
+deleteCartItemHandler userId cartItemId = do
+    deleted <- deleteCartItemById userId cartItemId
+    if deleted
+        then pure NoContent
+        else throw (CartItemNotFound userId cartItemId)

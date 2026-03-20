@@ -3,6 +3,7 @@
 module E2E.Support
     ( mkEnv
     , addProductToCartClient
+    , deleteCartItemClient
     , getCartClient
     , retryClient
     , createProductClient
@@ -35,9 +36,11 @@ updateProductByIdClient = updateProductByIdRoute (productsRoutes apiClient)
 deleteProductByIdClient = deleteProductByIdRoute (productsRoutes apiClient)
 
 addProductToCartClient :: Int -> AddCartRequest -> ClientM CartItemDTO
+deleteCartItemClient :: Int -> Int -> ClientM NoContent
 getCartClient :: Int -> ClientM CartDTO
 getCartClient userId = getCartRoute (cartRoutes apiClient userId)
 addProductToCartClient userId request = addProductToCartRoute (cartRoutes apiClient userId) request
+deleteCartItemClient userId cartItemId = deleteCartItemRoute (cartRoutes apiClient userId) cartItemId
 
 apiClient :: ApiRoutes (AsClientT ClientM)
 apiClient = genericClient

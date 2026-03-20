@@ -9,6 +9,7 @@ import Data.Time (getCurrentTime)
 import Database.Persist
     ( Entity (Entity)
     , SelectOpt (Desc)
+    , delete
     , getEntity
     , insert
     , selectList
@@ -62,5 +63,16 @@ runCartRepositoryDb = interpret $ \case
                         }
                 cartItemKey <- embed (runSqlPool @SqlBackend (insert cartItem) pool :: IO CartItemEntityId)
                 pure (Just (fromCartItemEntity (cartItemKey, cartItem)))
+    DeleteCartItemById userId cartItemId -> do
+        pool <- ask
+        let cartItemKey = toSqlKey (fromIntegral cartItemId) :: CartItemEntityId
+        maybeCartItem <- embed (runSqlPool @SqlBackend (getEntity cartItemKey) pool :: IO (Maybe (Entity CartItemEntity)))
+        case maybeCartItem of
+            Nothing -> pure False
+            Just (Entity _ cartItem)
+                | cartItemEntityUserId cartItem /= userId -> pure False
+                | otherwise -> do
+                    embed (runSqlPool @SqlBackend (delete cartItemKey) pool :: IO ())
+                    pure True
     where
         toDomain (Entity key entity) = fromCartItemEntity (key, entity)

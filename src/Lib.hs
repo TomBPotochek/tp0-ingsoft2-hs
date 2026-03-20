@@ -29,7 +29,7 @@ import API.Routes (API, ApiRoutes (..), CartByUserRoutes (..), OpenApiAPI, Produ
 import App.Effects.CartRepository (CartRepository)
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository)
-import App.Handlers.Cart (addProductToCartHandler, getCartHandler)
+import App.Handlers.Cart (addProductToCartHandler, deleteCartItemHandler, getCartHandler)
 import App.Handlers.Product (createProductHandler, deleteProductByIdHandler, getProductByIdHandler, listProductsHandler, updateProductByIdHandler)
 import Infra.Persistence.CartRepository (runCartRepositoryDb)
 import Infra.Persistence.Models (migrateAll)
@@ -67,6 +67,7 @@ serverSem =
         CartByUserRoutes
           { getCartRoute = getCartHandler userId
           , addProductToCartRoute = addProductToCartHandler userId
+          , deleteCartItemRoute = deleteCartItemHandler userId
           }
     , openApiJsonRoute = pure openApiSpec
     }
@@ -96,6 +97,12 @@ appErrorToServerError appError =
         "Not Found"
         ("Product with id " ++ show productId ++ " not found")
         ("/products/" ++ show productId)
+    CartItemNotFound userId cartItemId ->
+      problemDetails
+        err404
+        "Not Found"
+        ("Cart item with id " ++ show cartItemId ++ " not found in cart of user " ++ show userId)
+        ("/cart/" ++ show userId ++ "/items/" ++ show cartItemId)
     InvalidInput maybeField detail ->
       problemDetails
         err400

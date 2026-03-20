@@ -60,6 +60,12 @@ data CartByUserRoutes mode = CartByUserRoutes
             :> Summary "Add product to user's cart"
             :> ReqBody '[JSON] AddCartRequest
             :> Post '[JSON] CartItemDTO
+    , deleteCartItemRoute ::
+        mode
+            :- "items"
+            :> Capture "cartItemId" Int
+            :> Summary "Delete an item from user's cart"
+            :> DeleteNoContent
     }
     deriving (Generic)
 

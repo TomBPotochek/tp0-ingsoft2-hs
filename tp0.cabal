@@ -118,6 +118,7 @@ executable tp0
 executable tp0-e2e
   main-is: Main.hs
   other-modules:
+      E2E.CartSpec
       E2E.Support
       E2E.ProductsSpec
   hs-source-dirs:
@@ -154,6 +155,8 @@ test-suite tp0-integration
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Integration.CartApiSpec
+      Integration.CartHttpSpec
       Integration.Support
       Integration.ProductsApiSpec
       Integration.ProductsHttpSpec
