@@ -10,7 +10,10 @@
 module Infra.Persistence.Models
     ( ProductEntity(..)
     , ProductEntityId
+    , CartItemEntity(..)
+    , CartItemEntityId
     , migrateAll
+    , fromCartItemEntity
     , fromProductEntity
     ) where
 
@@ -18,6 +21,7 @@ import Data.Time (UTCTime)
 import Database.Persist.Sql (fromSqlKey)
 import Database.Persist.TH
 
+import Domain.CartItem (CartItem (..))
 import Domain.Product (Product(..))
 
 -- Persistent schema (Postgres backend will use these entities).
@@ -29,6 +33,14 @@ ProductEntity sql=products
     price Double
     createdAt UTCTime
     updatedAt UTCTime
+    deriving Show Eq
+
+CartItemEntity sql=cart_items
+    userId Int
+    productId ProductEntityId OnDeleteCascade
+    title String
+    unitPrice Double
+    addedAt UTCTime
     deriving Show Eq
 |]
 
@@ -42,4 +54,15 @@ fromProductEntity (productKey, productEntity) =
         , productPrice = productEntityPrice productEntity
         , productCreatedAt = productEntityCreatedAt productEntity
         , productUpdatedAt = productEntityUpdatedAt productEntity
+        }
+
+fromCartItemEntity :: (CartItemEntityId, CartItemEntity) -> CartItem
+fromCartItemEntity (cartItemKey, cartItemEntity) =
+    CartItem
+        { cartItemId = fromIntegral (fromSqlKey cartItemKey)
+        , cartItemUserId = cartItemEntityUserId cartItemEntity
+        , cartItemProductId = fromIntegral (fromSqlKey (cartItemEntityProductId cartItemEntity))
+        , cartItemTitle = cartItemEntityTitle cartItemEntity
+        , cartItemUnitPrice = cartItemEntityUnitPrice cartItemEntity
+        , cartItemAddedAt = cartItemEntityAddedAt cartItemEntity
         }

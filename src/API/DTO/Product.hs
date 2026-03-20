@@ -17,8 +17,7 @@ import Data.Aeson
     , genericParseJSON
     , genericToJSON
     )
-import Data.Char (toLower)
-import Data.List (stripPrefix)
+
 import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
@@ -26,6 +25,7 @@ import GHC.Generics (Generic)
 import App.ProductCreation (NewProduct (..))
 import qualified App.ProductUpdate as ProductUpdate
 import Domain.Product (Product(..))
+import API.DTO.Support (dropPrefixFromFields)
 
 data ProductDTO = ProductDTO
     { id :: Int
@@ -76,13 +76,6 @@ instance ToSchema UpdateProductRequest
 createProductInputJSONOptions :: Options
 createProductInputJSONOptions = defaultOptions
     { fieldLabelModifier = dropCreateProductPrefix }
-
-dropPrefixFromFields :: String -> String -> String
-dropPrefixFromFields prefix fieldName =
-    case stripPrefix prefix fieldName of
-        Nothing -> fieldName
-        Just [] -> []
-        Just (x:xs) -> toLower x : xs
 
 dropCreateProductPrefix :: String -> String
 dropCreateProductPrefix = dropPrefixFromFields "createProduct"

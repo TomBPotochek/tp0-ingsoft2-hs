@@ -6,6 +6,8 @@ module Integration.ProductsApiSpec
 
 import Data.Either (isLeft)
 import Data.List (isInfixOf)
+import API.DTO.Cart (AddCartRequest (..))
+import qualified API.DTO.Cart as CartDTO
 import qualified API.DTO.Product as ProductDTO
 import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Data.Time.Clock.POSIX (getPOSIXTime)
@@ -14,14 +16,15 @@ import Servant (NoContent (NoContent))
 import Servant.Client (BaseUrl (baseUrlPort), ClientEnv, ClientError (FailureResponse), ClientM, client, mkClientEnv, parseBaseUrl, runClientM)
 import Test.Hspec (Spec, around, expectationFailure, it, runIO, shouldBe, shouldSatisfy)
 
-import API.DTO.Product (CreateProductRequest (..), ProductDTO (..), UpdateProductRequest (..))
-import API.Routes (productApi)
+import API.DTO.Product (CreateProductRequest (..), UpdateProductRequest (..))
+import API.Routes (cartApi, productApi)
 import Integration.Support (withIntegrationApp)
 
 spec :: Spec
 spec =
     around withIntegrationApp $ do
         let createProductClient :<|> (listProductsClient :<|> (getProductByIdClient :<|> (updateProductByIdClient :<|> deleteProductByIdClient))) = client productApi
+            addProductToCartClient = client cartApi
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings
         let clientEnv port = mkClientEnv manager (baseUrl { baseUrlPort = port })
@@ -37,8 +40,8 @@ spec =
                     }
 
             created <- runOrFail (clientEnv port) (createProductClient request)
-            sellerId created `shouldBe` 7
-            title created `shouldBe` productTitle
+            ProductDTO.sellerId created `shouldBe` 7
+            ProductDTO.title created `shouldBe` productTitle
 
         it "GET /products returns the created product" $ \port -> do
             unique <- uniqueSuffix
@@ -51,11 +54,11 @@ spec =
                     }
 
             created <- runOrFail (clientEnv port) (createProductClient request)
-            sellerId created `shouldBe` 42
-            title created `shouldBe` productTitle
+            ProductDTO.sellerId created `shouldBe` 42
+            ProductDTO.title created `shouldBe` productTitle
 
             products <- runOrFail (clientEnv port) listProductsClient
-            products `shouldSatisfy` any ((== productTitle) . title)
+            products `shouldSatisfy` any ((== productTitle) . ProductDTO.title)
 
         it "GET /products/{id} returns the product when it exists" $ \port -> do
             unique <- uniqueSuffix
@@ -69,10 +72,10 @@ spec =
             created <- runOrFail (clientEnv port) (createProductClient request)
             found <- runOrFail (clientEnv port) (getProductByIdClient (ProductDTO.id created))
             ProductDTO.id found `shouldBe` ProductDTO.id created
-            sellerId found `shouldBe` sellerId created
-            title found `shouldBe` title created
-            description found `shouldBe` description created
-            price found `shouldBe` price created
+            ProductDTO.sellerId found `shouldBe` ProductDTO.sellerId created
+            ProductDTO.title found `shouldBe` ProductDTO.title created
+            ProductDTO.description found `shouldBe` ProductDTO.description created
+            ProductDTO.price found `shouldBe` ProductDTO.price created
 
         it "GET /products/{id} returns 404 when the product does not exist" $ \port -> do
             result <- runClientM (getProductByIdClient 9_999_999) (clientEnv port)
@@ -101,10 +104,10 @@ spec =
             updated <- runOrFail (clientEnv port) (updateProductByIdClient (ProductDTO.id created) updateRequest)
 
             ProductDTO.id updated `shouldBe` ProductDTO.id created
-            sellerId updated `shouldBe` sellerId created
-            title updated `shouldBe` updateProductTitle updateRequest
-            description updated `shouldBe` updateProductDescription updateRequest
-            price updated `shouldBe` updateProductPrice updateRequest
+            ProductDTO.sellerId updated `shouldBe` ProductDTO.sellerId created
+            ProductDTO.title updated `shouldBe` updateProductTitle updateRequest
+            ProductDTO.description updated `shouldBe` updateProductDescription updateRequest
+            ProductDTO.price updated `shouldBe` updateProductPrice updateRequest
 
         it "PUT /products/{id} returns 404 when the product does not exist" $ \port -> do
             let updateRequest = UpdateProductRequest
@@ -139,6 +142,31 @@ spec =
 
         it "DELETE /products/{id} returns 404 when the product does not exist" $ \port -> do
             result <- runClientM (deleteProductByIdClient 9_999_999) (clientEnv port)
+            result `shouldSatisfy` isLeft
+            case result of
+                Left (FailureResponse _ response) ->
+                    show response `shouldSatisfy` ("404" `isInfixOf`)
+                Left err -> expectationFailure ("expected 404 FailureResponse, got: " ++ show err)
+                Right _ -> expectationFailure "expected 404 but request succeeded"
+
+        it "POST /cart/{userId}/items creates a cart item using product snapshot" $ \port -> do
+            unique <- uniqueSuffix
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 20
+                    , createProductTitle = "Snapshot Product " ++ unique
+                    , createProductDescription = "Used for cart snapshot"
+                    , createProductPrice = 88.8
+                    }
+
+            created <- runOrFail (clientEnv port) (createProductClient createRequest)
+            cartItem <- runOrFail (clientEnv port) (addProductToCartClient 123 (AddCartRequest (ProductDTO.id created)))
+
+            CartDTO.productId cartItem `shouldBe` ProductDTO.id created
+            CartDTO.title cartItem `shouldBe` ProductDTO.title created
+            CartDTO.unitPrice cartItem `shouldBe` ProductDTO.price created
+
+        it "POST /cart/{userId}/items returns 404 when product does not exist" $ \port -> do
+            result <- runClientM (addProductToCartClient 123 (AddCartRequest 9_999_999)) (clientEnv port)
             result `shouldSatisfy` isLeft
             case result of
                 Left (FailureResponse _ response) ->

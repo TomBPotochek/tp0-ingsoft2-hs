@@ -73,3 +73,20 @@ spec = with mkIntegrationApp $ do
     describe "DELETE /products/{id}" $ do
         it "responds with 404 for a missing product" $ do
             request methodDelete "/products/999999" [] "" `shouldRespondWith` 404
+
+    describe "POST /cart/{userId}/items" $ do
+        it "responds with 404 when product does not exist" $ do
+            request
+                methodPost
+                "/cart/123/items"
+                [(hContentType, "application/json")]
+                "{\"productId\":999999}"
+                `shouldRespondWith` 404
+
+        it "responds with 400 for malformed JSON" $ do
+            request
+                methodPost
+                "/cart/123/items"
+                [(hContentType, "application/json")]
+                "{invalid"
+                `shouldRespondWith` 400

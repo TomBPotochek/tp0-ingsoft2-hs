@@ -8,9 +8,11 @@ import Data.Either (isLeft)
 import Servant.Client (ClientEnv)
 import Test.Hspec (Spec, describe, expectationFailure, it, shouldBe, shouldSatisfy)
 
-import API.DTO.Product (CreateProductRequest(..), ProductDTO(..), UpdateProductRequest(..))
+import API.DTO.Cart (AddCartRequest (..))
+import qualified API.DTO.Cart as CartDTO
+import API.DTO.Product (CreateProductRequest(..), UpdateProductRequest(..))
 import qualified API.DTO.Product as ProductDTO
-import E2E.Support (createProductClient, deleteProductByIdClient, getProductByIdClient, listProductsClient, retryClient, updateProductByIdClient)
+import E2E.Support (addProductToCartClient, createProductClient, deleteProductByIdClient, getProductByIdClient, listProductsClient, retryClient, updateProductByIdClient)
 
 
 spec :: ClientEnv -> Spec
@@ -27,10 +29,10 @@ spec env = do
             case result of
                 Left err -> expectationFailure ("E2E request failed: " ++ err)
                 Right createdProduct -> do
-                    sellerId createdProduct `shouldBe` 1
-                    title createdProduct `shouldBe` "Test Product"
-                    description createdProduct `shouldBe` "A test product"
-                    price createdProduct `shouldBe` 99.99
+                    ProductDTO.sellerId createdProduct `shouldBe` 1
+                    ProductDTO.title createdProduct `shouldBe` "Test Product"
+                    ProductDTO.description createdProduct `shouldBe` "A test product"
+                    ProductDTO.price createdProduct `shouldBe` 99.99
 
     describe "GET /products" $ do
         it "returns all products" $ do
@@ -69,10 +71,10 @@ spec env = do
                         Left fetchErr -> expectationFailure ("E2E request failed: " ++ fetchErr)
                         Right foundProduct -> do
                             ProductDTO.id foundProduct `shouldBe` ProductDTO.id createdProduct
-                            sellerId foundProduct `shouldBe` sellerId createdProduct
-                            title foundProduct `shouldBe` title createdProduct
-                            description foundProduct `shouldBe` description createdProduct
-                            price foundProduct `shouldBe` price createdProduct
+                            ProductDTO.sellerId foundProduct `shouldBe` ProductDTO.sellerId createdProduct
+                            ProductDTO.title foundProduct `shouldBe` ProductDTO.title createdProduct
+                            ProductDTO.description foundProduct `shouldBe` ProductDTO.description createdProduct
+                            ProductDTO.price foundProduct `shouldBe` ProductDTO.price createdProduct
 
     describe "PUT /products/{id}" $ do
         it "updates a product and returns updated data" $ do
@@ -97,10 +99,10 @@ spec env = do
                         Left updateErr -> expectationFailure ("E2E request failed: " ++ updateErr)
                         Right updatedProduct -> do
                             ProductDTO.id updatedProduct `shouldBe` ProductDTO.id createdProduct
-                            sellerId updatedProduct `shouldBe` sellerId createdProduct
-                            title updatedProduct `shouldBe` updateProductTitle updateRequest
-                            description updatedProduct `shouldBe` updateProductDescription updateRequest
-                            price updatedProduct `shouldBe` updateProductPrice updateRequest
+                            ProductDTO.sellerId updatedProduct `shouldBe` ProductDTO.sellerId createdProduct
+                            ProductDTO.title updatedProduct `shouldBe` updateProductTitle updateRequest
+                            ProductDTO.description updatedProduct `shouldBe` updateProductDescription updateRequest
+                            ProductDTO.price updatedProduct `shouldBe` updateProductPrice updateRequest
 
     describe "DELETE /products/{id}" $ do
         it "deletes an existing product" $ do
@@ -122,3 +124,24 @@ spec env = do
 
                     getResult <- retryClient 20 env (getProductByIdClient (ProductDTO.id createdProduct))
                     getResult `shouldSatisfy` isLeft
+
+    describe "POST /cart/{userId}/items" $ do
+        it "creates a cart item with product title/price snapshot" $ do
+            let createRequest = CreateProductRequest
+                    { createProductSellerId = 7
+                    , createProductTitle = "Cart snapshot source"
+                    , createProductDescription = "Snapshot description"
+                    , createProductPrice = 31.25
+                    }
+
+            createdResult <- retryClient 20 env (createProductClient createRequest)
+            case createdResult of
+                Left err -> expectationFailure ("E2E setup failed: " ++ err)
+                Right createdProduct -> do
+                    addResult <- retryClient 20 env (addProductToCartClient 55 (AddCartRequest (ProductDTO.id createdProduct)))
+                    case addResult of
+                        Left addErr -> expectationFailure ("E2E request failed: " ++ addErr)
+                        Right cartItem -> do
+                            CartDTO.productId cartItem `shouldBe` ProductDTO.id createdProduct
+                            CartDTO.title cartItem `shouldBe` ProductDTO.title createdProduct
+                            CartDTO.unitPrice cartItem `shouldBe` ProductDTO.price createdProduct

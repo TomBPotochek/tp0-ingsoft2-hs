@@ -3,14 +3,17 @@
 
 module API.Routes
     ( ProductAPI
+    , CartAPI
     , API
     , productApi
+    , cartApi
     , api
     ) where
 
 import Data.OpenApi (OpenApi)
 import Servant (Capture, DeleteNoContent, Get, JSON, Post, Proxy(..), Put, ReqBody, Summary, (:<|>), (:>))
 
+import API.DTO.Cart (AddCartRequest, CartItemDTO)
 import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
 
 type ProductAPI =
@@ -33,10 +36,21 @@ type ProductAPI =
                 :> DeleteNoContent
             )
 
-type API = ProductAPI :<|> "openapi.json" :> Get '[JSON] OpenApi
+type CartAPI =
+    "cart"
+        :> Capture "userId" Int
+        :> "items"
+        :> Summary "Add product to user's cart"
+        :> ReqBody '[JSON] AddCartRequest
+        :> Post '[JSON] CartItemDTO
+
+type API = ProductAPI :<|> CartAPI :<|> "openapi.json" :> Get '[JSON] OpenApi
 
 productApi :: Proxy ProductAPI
 productApi = Proxy
+
+cartApi :: Proxy CartAPI
+cartApi = Proxy
 
 api :: Proxy API
 api = Proxy

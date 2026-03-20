@@ -25,10 +25,13 @@ import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
 
-import API.Routes (API, ProductAPI, api, productApi)
+import API.Routes (API, CartAPI, ProductAPI, api)
+import App.Effects.CartRepository (CartRepository)
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository)
+import App.Handlers.Cart (addProductToCartHandler)
 import App.Handlers.Product (createProductHandler, deleteProductByIdHandler, getProductByIdHandler, listProductsHandler, updateProductByIdHandler)
+import Infra.Persistence.CartRepository (runCartRepositoryDb)
 import Infra.Persistence.Models (migrateAll)
 import Infra.Persistence.ProductRepository (runProductRepositoryDb)
 import Infra.Persistence.Seed (seedDb)
@@ -60,6 +63,7 @@ serverSem =
         )
       )
     )
+      :<|> addProductToCartHandler
   :<|> pure openApiSpec
 
 -- this sem->handler interpreter purposely doesn't have a top level signature to let the 
@@ -68,11 +72,11 @@ serverSem =
 -- | Sem program to Servant Handler Interpreter/natural transformation.. 
 -- It runs the Sem program by interpreting the effects stack against the db connection pool, 
 -- and translating AppErrors into Servant ServerErrors.
-semToHandler :: ConnectionPool -> Sem AppEffects a -> Handler a
 semToHandler pool sem =
   do
     result <- liftIO $ sem
       & runProductRepositoryDb 
+      & runCartRepositoryDb
       & runReader pool 
       & runError 
       & runM 
@@ -120,7 +124,7 @@ formatValidationDetail maybeField detail =
     Just field -> field ++ ": " ++ detail
 
 openApiSpec :: OpenApi
-openApiSpec = toOpenApi (productApi :: Proxy ProductAPI)
+openApiSpec = toOpenApi (Proxy :: Proxy (ProductAPI :<|> CartAPI))
 
 getConnectionString :: IO ConnectionString
 getConnectionString = do

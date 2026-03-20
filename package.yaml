@@ -64,17 +64,22 @@ flags:
 library:
   exposed-modules:
   - Lib
+  - API.DTO.Cart
   - API.DTO.Product
   - API.Routes
+  - App.Effects.CartRepository
   - App.Error
   - App.Effects.ProductRepository
+  - App.Handlers.Cart
   - App.Handlers.Product
   - App.ProductCreation
   - App.ProductUpdate
+  - Domain.CartItem
   - Domain.Product
   - Infra.Persistence.Models
   - Infra.Persistence.Seed
   other-modules:
+  - Infra.Persistence.CartRepository
   - Infra.Persistence.ProductRepository
   when:
   - condition: flag(local-dev)
