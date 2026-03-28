@@ -19,28 +19,29 @@ import Servant (Capture, DeleteNoContent, Get, JSON, NamedRoutes, PostCreated, P
 
 import API.DTO.Cart (AddCartRequest, CartDTO, CartItemDTO)
 import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
+import API.DTO.Support (ApiResponse)
 
 data ProductRoutes mode = ProductRoutes
     { createProductRoute ::
         mode
             :- Summary "Create a new product"
             :> ReqBody '[JSON] CreateProductRequest
-            :> PostCreated '[JSON] ProductDTO
+            :> PostCreated '[JSON] (ApiResponse ProductDTO)
     , listProductsRoute ::
         mode
             :- Summary "Retrieve all products"
-            :> Get '[JSON] [ProductDTO]
+            :> Get '[JSON] (ApiResponse [ProductDTO])
     , getProductByIdRoute ::
         mode
             :- Summary "Retrieve a product by id"
             :> Capture "id" Int
-            :> Get '[JSON] ProductDTO
+            :> Get '[JSON] (ApiResponse ProductDTO)
     , updateProductByIdRoute ::
         mode
             :- Summary "Update a product by id"
             :> Capture "id" Int
             :> ReqBody '[JSON] UpdateProductRequest
-            :> Put '[JSON] ProductDTO
+            :> Put '[JSON] (ApiResponse ProductDTO)
     , deleteProductByIdRoute ::
         mode
             :- Summary "Delete a product by id"
@@ -53,7 +54,7 @@ data CartByUserRoutes mode = CartByUserRoutes
     { getCartRoute ::
         mode
             :- Summary "Get user's cart"
-            :> Get '[JSON] CartDTO
+            :> Get '[JSON] (ApiResponse CartDTO)
     , deleteCartRoute ::
         mode
             :- Summary "Wipe a user's cart"
@@ -63,7 +64,7 @@ data CartByUserRoutes mode = CartByUserRoutes
             :- "items"
             :> Summary "Add product to user's cart"
             :> ReqBody '[JSON] AddCartRequest
-            :> PostCreated '[JSON] CartItemDTO
+            :> PostCreated '[JSON] (ApiResponse CartItemDTO)
     , deleteCartItemRoute ::
         mode
             :- "items"

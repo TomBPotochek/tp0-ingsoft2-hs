@@ -7,33 +7,34 @@ module App.Handlers.Product
     ) where
 
 import API.DTO.Product (CreateProductRequest (..), ProductDTO, UpdateProductRequest (..), toDTO, toNewProduct, toProductUpdate)
+import API.DTO.Support (ApiResponse (..))
 import App.Error (AppError (..))
 import App.Effects.ProductRepository (ProductRepository, createProduct, deleteProductById, getProductById, listProducts, updateProductById)
 import Data.Char (isSpace)
 import Polysemy (Member, Members, Sem)
 import Polysemy.Error (Error, throw)
 
-createProductHandler :: Members '[ProductRepository, Error AppError] r => CreateProductRequest -> Sem r ProductDTO
+createProductHandler :: Members '[ProductRepository, Error AppError] r => CreateProductRequest -> Sem r (ApiResponse ProductDTO)
 createProductHandler req = do
     validateCreateProductRequest req
-    toDTO <$> createProduct (toNewProduct req)
+    ApiResponse . toDTO <$> createProduct (toNewProduct req)
 
-listProductsHandler :: Member ProductRepository r => Sem r [ProductDTO]
-listProductsHandler = map toDTO <$> listProducts
+listProductsHandler :: Member ProductRepository r => Sem r (ApiResponse [ProductDTO])
+listProductsHandler = ApiResponse . map toDTO <$> listProducts
 
-getProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> Sem r ProductDTO
+getProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> Sem r (ApiResponse ProductDTO)
 getProductByIdHandler productId = do
     maybeProduct <- getProductById productId
     case maybeProduct of
-        Just foundProduct -> pure (toDTO foundProduct)
+        Just foundProduct -> pure (ApiResponse (toDTO foundProduct))
         Nothing -> throw (ProductNotFound productId)
 
-updateProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> UpdateProductRequest -> Sem r ProductDTO
+updateProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> UpdateProductRequest -> Sem r (ApiResponse ProductDTO)
 updateProductByIdHandler productId req = do
     validateUpdateProductRequest req
     maybeUpdated <- updateProductById productId (toProductUpdate req)
     case maybeUpdated of
-        Just updatedProduct -> pure (toDTO updatedProduct)
+        Just updatedProduct -> pure (ApiResponse (toDTO updatedProduct))
         Nothing -> throw (ProductNotFound productId)
 
 deleteProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> Sem r ()

@@ -17,6 +17,7 @@ import API.DTO.Cart (AddCartRequest (..))
 import qualified API.DTO.Cart as CartDTO
 import API.DTO.Product (CreateProductRequest (..))
 import qualified API.DTO.Product as ProductDTO
+import API.DTO.Support (ApiResponse (..))
 import API.Routes (ApiRoutes (..), CartByUserRoutes (..), ProductRoutes (..))
 import Integration.Support (withIntegrationApp)
 
@@ -24,11 +25,11 @@ spec :: Spec
 spec =
     around withIntegrationApp $ do
         let apiClient = genericClient :: ApiRoutes (AsClientT ClientM)
-            createProductClient = createProductRoute (productsRoutes apiClient)
+            createProductClient = fmap apiResponseData . createProductRoute (productsRoutes apiClient)
             deleteProductByIdClient = deleteProductByIdRoute (productsRoutes apiClient)
-            getCartClient userId = getCartRoute (cartRoutes apiClient userId)
+            getCartClient userId = fmap apiResponseData (getCartRoute (cartRoutes apiClient userId))
             deleteCartClient userId = deleteCartRoute (cartRoutes apiClient userId)
-            addProductToCartClient userId request = addProductToCartRoute (cartRoutes apiClient userId) request
+            addProductToCartClient userId request = fmap apiResponseData (addProductToCartRoute (cartRoutes apiClient userId) request)
             deleteCartItemClient userId cartItemId = deleteCartItemRoute (cartRoutes apiClient userId) cartItemId
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings

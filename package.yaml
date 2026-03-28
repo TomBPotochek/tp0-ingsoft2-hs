@@ -69,6 +69,7 @@ library:
   - Lib
   - API.DTO.Cart
   - API.DTO.Product
+  - API.DTO.Support
   - API.Routes
   - App.Effects.CartRepository
   - App.Error
@@ -84,7 +85,6 @@ library:
   other-modules:
   - Infra.Persistence.CartRepository
   - Infra.Persistence.ProductRepository
-  - API.DTO.Support
   when:
   - condition: flag(local-dev)
     dependencies:

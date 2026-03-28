@@ -15,6 +15,7 @@ import Servant.Client.Generic (AsClientT, genericClient)
 import Test.Hspec (Spec, around, expectationFailure, it, runIO, shouldBe, shouldSatisfy)
 
 import API.DTO.Product (CreateProductRequest (..), UpdateProductRequest (..))
+import API.DTO.Support (ApiResponse (..))
 import API.Routes (ApiRoutes (..), ProductRoutes (..))
 import Integration.Support (withIntegrationApp)
 
@@ -22,10 +23,11 @@ spec :: Spec
 spec =
     around withIntegrationApp $ do
         let apiClient = genericClient :: ApiRoutes (AsClientT ClientM)
-            createProductClient = createProductRoute (productsRoutes apiClient)
-            listProductsClient = listProductsRoute (productsRoutes apiClient)
-            getProductByIdClient = getProductByIdRoute (productsRoutes apiClient)
-            updateProductByIdClient = updateProductByIdRoute (productsRoutes apiClient)
+            createProductClient = fmap apiResponseData . createProductRoute (productsRoutes apiClient)
+            listProductsClient = fmap apiResponseData (listProductsRoute (productsRoutes apiClient))
+            getProductByIdClient = fmap apiResponseData . getProductByIdRoute (productsRoutes apiClient)
+            updateProductByIdClient productId request =
+                fmap apiResponseData (updateProductByIdRoute (productsRoutes apiClient) productId request)
             deleteProductByIdClient = deleteProductByIdRoute (productsRoutes apiClient)
         baseUrl <- runIO $ parseBaseUrl "http://localhost"
         manager <- runIO $ newManager defaultManagerSettings

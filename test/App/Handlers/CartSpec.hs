@@ -11,6 +11,7 @@ import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 import Data.Function ((&))
 
 import API.DTO.Cart (AddCartRequest (..), CartDTO (..), CartItemDTO (..))
+import API.DTO.Support (ApiResponse (..))
 import App.Effects.CartRepository (CartRepository (..))
 import App.Error (AppError (..))
 import App.Handlers.Cart (addProductToCartHandler, deleteCartHandler, deleteCartItemHandler, getCartHandler)
@@ -28,10 +29,10 @@ spec = do
             let initial = seededRepoState
                 (result, _) = runWithInMemoryRepo initial (getCartHandler 1)
 
-            fmap totalPrice result `shouldSatisfy` \case
+            fmap (totalPrice . apiResponseData) result `shouldSatisfy` \case
                 Right total -> abs (total - 179.98) < 1e-9
                 Left _ -> False
-            fmap (length . items) result `shouldBe` Right 2
+            fmap (length . items . apiResponseData) result `shouldBe` Right 2
 
     describe "addProductToCartHandler" $ do
         it "returns ProductNotFound when the product does not exist" $ do
@@ -44,8 +45,8 @@ spec = do
             let request = AddCartRequest {addCartProductId = 1}
                 (result, finalState) = runWithInMemoryRepo emptyRepoState (addProductToCartHandler 7 request)
 
-            fmap productId result `shouldBe` Right 1
-            fmap unitPrice result `shouldBe` Right 129.99
+            fmap (productId . apiResponseData) result `shouldBe` Right 1
+            fmap (unitPrice . apiResponseData) result `shouldBe` Right 129.99
             length (repoCartItems finalState) `shouldBe` 1
 
     describe "deleteCartItemHandler" $ do

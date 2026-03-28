@@ -23,6 +23,7 @@ import Servant.Client.Generic (AsClientT, genericClient)
 
 import API.DTO.Cart (AddCartRequest, CartDTO, CartItemDTO)
 import API.DTO.Product (CreateProductRequest, ProductDTO, UpdateProductRequest)
+import API.DTO.Support (ApiResponse (..))
 import API.Routes (ApiRoutes (..), CartByUserRoutes (..), ProductRoutes (..))
 
 createProductClient :: CreateProductRequest -> ClientM ProductDTO
@@ -30,19 +31,20 @@ getProductByIdClient :: Int -> ClientM ProductDTO
 listProductsClient :: ClientM [ProductDTO]
 updateProductByIdClient :: Int -> UpdateProductRequest -> ClientM ProductDTO
 deleteProductByIdClient :: Int -> ClientM NoContent
-createProductClient = createProductRoute (productsRoutes apiClient)
-getProductByIdClient = getProductByIdRoute (productsRoutes apiClient)
-listProductsClient = listProductsRoute (productsRoutes apiClient)
-updateProductByIdClient = updateProductByIdRoute (productsRoutes apiClient)
+createProductClient = fmap apiResponseData . createProductRoute (productsRoutes apiClient)
+getProductByIdClient = fmap apiResponseData . getProductByIdRoute (productsRoutes apiClient)
+listProductsClient = fmap apiResponseData (listProductsRoute (productsRoutes apiClient))
+updateProductByIdClient productId request =
+    fmap apiResponseData (updateProductByIdRoute (productsRoutes apiClient) productId request)
 deleteProductByIdClient = deleteProductByIdRoute (productsRoutes apiClient)
 
 addProductToCartClient :: Int -> AddCartRequest -> ClientM CartItemDTO
 deleteCartClient :: Int -> ClientM NoContent
 deleteCartItemClient :: Int -> Int -> ClientM NoContent
 getCartClient :: Int -> ClientM CartDTO
-getCartClient userId = getCartRoute (cartRoutes apiClient userId)
+getCartClient userId = fmap apiResponseData (getCartRoute (cartRoutes apiClient userId))
 deleteCartClient userId = deleteCartRoute (cartRoutes apiClient userId)
-addProductToCartClient userId request = addProductToCartRoute (cartRoutes apiClient userId) request
+addProductToCartClient userId request = fmap apiResponseData (addProductToCartRoute (cartRoutes apiClient userId) request)
 deleteCartItemClient userId cartItemId = deleteCartItemRoute (cartRoutes apiClient userId) cartItemId
 
 apiClient :: ApiRoutes (AsClientT ClientM)
