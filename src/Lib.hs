@@ -74,9 +74,28 @@ customBodyParserErrorFormatter _typeRep req errStr =
       instancePath = show $ pathInfo req
   in problemDetails err400 "Bad Request" detail instancePath
 
+-- Generic RFC 7807 error formatter for all other errors
+genericProblemErrorFormatter :: ServerError -> String -> Request -> ServerError
+genericProblemErrorFormatter baseError detail req =
+  problemDetails baseError (statusMessage baseError) detail (show $ pathInfo req)
+
+statusMessage :: ServerError -> String
+statusMessage err =
+  case errHTTPCode err of
+    400 -> "Bad Request"
+    404 -> "Not Found"
+    405 -> "Method Not Allowed"
+    406 -> "Not Acceptable"
+    415 -> "Unsupported Media Type"
+    _   -> "Internal Server Error"
+
 customErrorFormatters :: ErrorFormatters
 customErrorFormatters = defaultErrorFormatters
-  { bodyParserErrorFormatter = customBodyParserErrorFormatter }
+  { bodyParserErrorFormatter = customBodyParserErrorFormatter
+  , urlParseErrorFormatter = \_ req errStr -> genericProblemErrorFormatter err400 errStr req
+  , notFoundErrorFormatter = \req -> genericProblemErrorFormatter err404 "Not Found" req
+  , headerParseErrorFormatter = \_ req errStr -> genericProblemErrorFormatter err400 errStr req
+  }
 
 customContext :: Context '[ErrorFormatters]
 customContext = customErrorFormatters :. EmptyContext
