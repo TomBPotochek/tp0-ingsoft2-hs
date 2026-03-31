@@ -25,7 +25,8 @@ import Polysemy (Embed, Members, Sem)
 import Polysemy (runM)
 import Polysemy.Error (Error, runError)
 import Polysemy.Reader (Reader, runReader)
-import Servant (NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, hoistServer, serve)
+import Servant (NoContent (NoContent), Proxy(..), ServerError, ServerT, err400, err404, errBody, errHeaders, errHTTPCode, throwError, hoistServer, serveWithContext, Context(..))
+import Servant.Server (defaultErrorFormatters, ErrorFormatters(..), ErrorFormatter)
 import Servant.OpenApi (toOpenApi)
 import System.Environment (lookupEnv)
 import System.Exit (die)
@@ -65,10 +66,25 @@ startApp = do
           & setOnExceptionResponse defaultOnExceptionResponse
   runSettings settings (app pool loggingEnabled)
 
+
+-- Custom error formatter for JSON parse errors
+customBodyParserErrorFormatter :: ErrorFormatter
+customBodyParserErrorFormatter _typeRep req errStr =
+  let detail = "Invalid JSON: " ++ errStr
+      instancePath = show $ pathInfo req
+  in problemDetails err400 "Bad Request" detail instancePath
+
+customErrorFormatters :: ErrorFormatters
+customErrorFormatters = defaultErrorFormatters
+  { bodyParserErrorFormatter = customBodyParserErrorFormatter }
+
+customContext :: Context '[ErrorFormatters]
+customContext = customErrorFormatters :. EmptyContext
+
 app :: ConnectionPool -> Bool -> Application
 app pool loggingEnabled =
     (if loggingEnabled then requestLoggingMiddleware else id)
-        (unexpectedExceptionTo500Middleware (serve api (hoistServer api (semToHandler pool) serverSem)))
+        (unexpectedExceptionTo500Middleware (serveWithContext api customContext (hoistServer api (semToHandler pool) serverSem)))
 
 type AppEffects r = Members '[ProductRepository, CartRepository, Reader ConnectionPool, Error AppError, Embed IO] r
 
