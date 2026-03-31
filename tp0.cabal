@@ -41,6 +41,7 @@ library
       App.Handlers.Product
       App.ProductCreation
       App.ProductUpdate
+      App.Support
       Domain.CartItem
       Domain.Product
       Infra.Persistence.Models
@@ -53,6 +54,7 @@ library
   default-extensions:
       TypeApplications
       NumericUnderscores
+      PatternSynonyms
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
@@ -68,6 +70,7 @@ library
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , scientific
     , servant-client
     , servant-client-core
     , servant-openapi3
@@ -93,6 +96,7 @@ executable tp0
   default-extensions:
       TypeApplications
       NumericUnderscores
+      PatternSynonyms
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -108,6 +112,7 @@ executable tp0
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , scientific
     , servant-client
     , servant-client-core
     , servant-openapi3
@@ -130,6 +135,7 @@ executable tp0-e2e
   default-extensions:
       TypeApplications
       NumericUnderscores
+      PatternSynonyms
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -146,6 +152,7 @@ executable tp0-e2e
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , scientific
     , servant-client
     , servant-client-core
     , servant-openapi3
@@ -172,6 +179,7 @@ test-suite tp0-integration
   default-extensions:
       TypeApplications
       NumericUnderscores
+      PatternSynonyms
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
@@ -190,6 +198,7 @@ test-suite tp0-integration
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , scientific
     , servant-client
     , servant-client-core
     , servant-openapi3
@@ -214,9 +223,11 @@ test-suite tp0-test
   default-extensions:
       TypeApplications
       NumericUnderscores
+      PatternSynonyms
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      aeson
+      QuickCheck
+    , aeson
     , base
     , bytestring
     , co-log-core
@@ -230,6 +241,7 @@ test-suite tp0-test
     , persistent-postgresql
     , persistent-template
     , polysemy
+    , scientific
     , servant-client
     , servant-client-core
     , servant-openapi3

@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-
+{-# LANGUAGE PatternSynonyms #-}
 module API.DTO.Product
     ( ProductDTO(..)
     , CreateProductRequest(..)
@@ -17,13 +17,14 @@ import Data.Aeson
     , genericParseJSON
     , genericToJSON
     )
-
+import Data.Scientific (fromFloatDigits)
 import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 
 import App.ProductCreation (NewProduct (..))
 import qualified App.ProductUpdate as ProductUpdate
+import App.Support (pattern ViewMoney, moneyFromDouble)
 import Domain.Product (Product(..))
 import API.DTO.Support (dropPrefixFromFields)
 
@@ -87,21 +88,23 @@ updateProductInputJSONOptions = defaultOptions
 dropUpdateProductPrefix :: String -> String
 dropUpdateProductPrefix = dropPrefixFromFields "updateProduct"
 
-toNewProduct :: CreateProductRequest -> NewProduct
-toNewProduct input =
-    NewProduct
+toNewProduct :: CreateProductRequest -> Maybe NewProduct
+toNewProduct input = do
+    price <- moneyFromDouble (createProductPrice input)
+    return $ NewProduct
         { sellerId = createProductSellerId input
         , title = createProductTitle input
         , description = createProductDescription input
-        , price = createProductPrice input
+        , price = price
         }
 
-toProductUpdate :: UpdateProductRequest -> ProductUpdate.ProductUpdate
-toProductUpdate input =
-    ProductUpdate.ProductUpdate
+toProductUpdate :: UpdateProductRequest -> Maybe ProductUpdate.ProductUpdate
+toProductUpdate input = do
+    price <- moneyFromDouble (updateProductPrice input)
+    return $ ProductUpdate.ProductUpdate
         (updateProductTitle input)
         (updateProductDescription input)
-        (updateProductPrice input)
+        price
 
 toDTO :: Product -> ProductDTO
 toDTO domainProduct =
@@ -110,7 +113,7 @@ toDTO domainProduct =
         , sellerId = productSellerId domainProduct
         , title = productTitle domainProduct
         , description = productDescription domainProduct
-        , price = productPrice domainProduct
+        , price = realToFrac (productPrice domainProduct)
         , createdAt = productCreatedAt domainProduct
         , updatedAt = productUpdatedAt domainProduct
         }

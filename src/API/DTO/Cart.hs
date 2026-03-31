@@ -73,7 +73,7 @@ toDTO domainItem =
         { id = cartItemId domainItem
         , productId = cartItemProductId domainItem
         , title = cartItemTitle domainItem
-        , unitPrice = cartItemUnitPrice domainItem
+        , unitPrice = realToFrac (cartItemUnitPrice domainItem)
         , addedAt = cartItemAddedAt domainItem
         }
 

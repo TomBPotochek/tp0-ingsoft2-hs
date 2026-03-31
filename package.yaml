@@ -40,6 +40,7 @@ dependencies:
 - persistent-template
 - persistent-postgresql
 - monad-logger
+- scientific
 
 language: GHC2024
 
@@ -57,6 +58,7 @@ ghc-options:
 default-extensions:
 - TypeApplications
 - NumericUnderscores 
+- PatternSynonyms
 
 flags:
   local-dev:
@@ -78,6 +80,7 @@ library:
   - App.Handlers.Product
   - App.ProductCreation
   - App.ProductUpdate
+  - App.Support
   - Domain.CartItem
   - Domain.Product
   - Infra.Persistence.Models
@@ -136,6 +139,7 @@ tests:
     dependencies:
     - base
     - hspec
+    - QuickCheck
     - tp0
 
   tp0-integration:

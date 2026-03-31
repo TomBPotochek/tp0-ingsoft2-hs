@@ -25,6 +25,7 @@ import Data.Time (UTCTime)
 import Database.Persist.Sql (fromSqlKey)
 import Database.Persist.TH
 
+import App.Support (Money)
 import Domain.CartItem (CartItem (..))
 import Domain.Product (Product(..))
 
@@ -34,7 +35,7 @@ ProductEntity sql=products
     sellerId Int
     title String
     description String
-    price Double
+    price Money sqltype=numeric(12,2)
     createdAt UTCTime
     updatedAt UTCTime
     deriving Show Eq
@@ -43,7 +44,7 @@ CartItemEntity sql=cart_items
     userId Int
     productId ProductEntityId OnDeleteCascade
     title String
-    unitPrice Double
+    unitPrice Money sqltype=numeric(12,2)
     addedAt UTCTime
     deriving Show Eq
 |]

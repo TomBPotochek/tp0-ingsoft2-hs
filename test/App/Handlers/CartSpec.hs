@@ -7,7 +7,7 @@ module App.Handlers.CartSpec
 import Data.List (find)
 import Data.Time.Calendar (fromGregorian)
 import Data.Time.Clock (UTCTime (..), secondsToDiffTime)
-import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
+import Test.Hspec (Spec, describe, it, shouldBe)
 import Data.Function ((&))
 
 import API.DTO.Cart (AddCartRequest (..), CartDTO (..), CartItemDTO (..))
@@ -15,6 +15,7 @@ import API.DTO.Support (ApiResponse (..))
 import App.Effects.CartRepository (CartRepository (..))
 import App.Error (AppError (..))
 import App.Handlers.Cart (addProductToCartHandler, deleteCartHandler, deleteCartItemHandler, getCartHandler)
+import App.Support (Money)
 import Domain.CartItem (CartItem (..))
 import Polysemy (InterpreterFor, Members, Sem, interpret, run)
 import Polysemy.Error (Error)
@@ -29,10 +30,20 @@ spec = do
             let initial = seededRepoState
                 (result, _) = runWithInMemoryRepo initial (getCartHandler 1)
 
-            fmap (totalPrice . apiResponseData) result `shouldSatisfy` \case
-                Right total -> abs (total - 179.98) < 1e-9
-                Left _ -> False
+            fmap (totalPrice . apiResponseData) result `shouldBe` Right 179.98
             fmap (length . items . apiResponseData) result `shouldBe` Right 2
+
+        it "total price to at most 2 decimals" $ do
+            let initial =
+                    RepoState
+                        [ CartItem 1 1 1 "A" 10.02 fixedTime
+                        , CartItem 2 1 2 "B" 20.01 fixedTime
+                        ]
+                        defaultProducts
+                        3
+                (result, _) = runWithInMemoryRepo initial (getCartHandler 1)
+
+            fmap (totalPrice . apiResponseData) result `shouldBe` Right 30.03
 
     describe "addProductToCartHandler" $ do
         it "returns ProductNotFound when the product does not exist" $ do
@@ -70,7 +81,7 @@ spec = do
 
 data RepoState = RepoState
     { repoCartItems :: [CartItem]
-    , knownProducts :: [(Int, String, Double)]
+    , knownProducts :: [(Int, String, Money)]
     , nextCartItemId :: Int
     }
     deriving (Show, Eq)
@@ -88,7 +99,7 @@ seededRepoState =
         defaultProducts
         4
 
-defaultProducts :: [(Int, String, Double)]
+defaultProducts :: [(Int, String, Money)]
 defaultProducts =
     [ (1, "Mechanical Keyboard", 129.99)
     , (2, "Wireless Mouse", 49.99)

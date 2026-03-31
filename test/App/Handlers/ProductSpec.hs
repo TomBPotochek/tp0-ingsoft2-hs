@@ -10,6 +10,8 @@ import Test.Hspec (Spec, describe, it, shouldBe)
 import Data.Function ((&))
 
 import API.DTO.Product (CreateProductRequest (..), UpdateProductRequest (..))
+import qualified API.DTO.Product as ProductDTO
+import API.DTO.Support (ApiResponse (..))
 import App.Effects.ProductRepository (ProductRepository (..))
 import App.Error (AppError (..))
 import App.Handlers.Product (createProductHandler, updateProductByIdHandler)
@@ -44,8 +46,23 @@ spec = do
                     }
                 (result, finalState) = runWithInMemoryRepo emptyRepoState (createProductHandler request)
 
-            result `shouldBe` Left (InvalidInput (Just "price") "price must be >= 0.01")
+            result `shouldBe` Left (InvalidInput (Just "price") "price must be > 0")
             repoCalls finalState `shouldBe` 0
+
+        it "accepts prices with more than 2 decimals and rounds them" $ do
+            let request = CreateProductRequest
+                    { createProductSellerId = 1
+                    , createProductTitle = "Valid"
+                    , createProductDescription = "desc"
+                    , createProductPrice = 10.125
+                    }
+                typedRun =
+                    ( runWithInMemoryRepo emptyRepoState (createProductHandler request)
+                        :: (Either AppError (ApiResponse ProductDTO.ProductDTO), RepoState)
+                    )
+                (result, _) = typedRun
+
+            fmap (ProductDTO.price . apiResponseData) result `shouldBe` Right 10.13
 
     describe "updateProductByIdHandler validation" $ do
         it "rejects blank title without touching repository" $ do
@@ -67,8 +84,22 @@ spec = do
                     }
                 (result, finalState) = runWithInMemoryRepo seededRepoState (updateProductByIdHandler 1 request)
 
-            result `shouldBe` Left (InvalidInput (Just "price") "price must be >= 0.01")
+            result `shouldBe` Left (InvalidInput (Just "price") "price must be > 0")
             repoCalls finalState `shouldBe` 0
+
+        it "accepts update prices with more than 2 decimals and rounds them" $ do
+            let request = UpdateProductRequest
+                    { updateProductTitle = "New title"
+                    , updateProductDescription = "new"
+                    , updateProductPrice = 42.555
+                    }
+                typedRun =
+                    ( runWithInMemoryRepo seededRepoState (updateProductByIdHandler 1 request)
+                        :: (Either AppError (ApiResponse ProductDTO.ProductDTO), RepoState)
+                    )
+                (result, _) = typedRun
+
+            fmap (ProductDTO.price . apiResponseData) result `shouldBe` Right 42.56
 
 data RepoState = RepoState
     { repoProducts :: [Product]

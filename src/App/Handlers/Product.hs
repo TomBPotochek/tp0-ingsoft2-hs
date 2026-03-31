@@ -13,11 +13,17 @@ import App.Effects.ProductRepository (ProductRepository, createProduct, deletePr
 import Data.Char (isSpace)
 import Polysemy (Member, Members, Sem)
 import Polysemy.Error (Error, throw)
+import Data.Maybe (fromJust)
 
 createProductHandler :: Members '[ProductRepository, Error AppError] r => CreateProductRequest -> Sem r (ApiResponse ProductDTO)
 createProductHandler req = do
     validateCreateProductRequest req
-    ApiResponse . toDTO <$> createProduct (toNewProduct req)
+    -- parsing and validation serve similar purposes, so this mixed approach ended up
+    -- duplicating some checks (like the price field of this dto). 
+    -- Ideally, all this checks would become part of the parsing stage, but requires making 
+    -- richer parser types for error reporting (instead of just `Maybe`)
+    let prodReq = fromJust (toNewProduct req) -- this should never fail because of the validation above, but should be refactored out
+    ApiResponse . toDTO <$> createProduct prodReq
 
 listProductsHandler :: Member ProductRepository r => Sem r (ApiResponse [ProductDTO])
 listProductsHandler = ApiResponse . map toDTO <$> listProducts
@@ -32,7 +38,8 @@ getProductByIdHandler productId = do
 updateProductByIdHandler :: Members '[ProductRepository, Error AppError] r => Int -> UpdateProductRequest -> Sem r (ApiResponse ProductDTO)
 updateProductByIdHandler productId req = do
     validateUpdateProductRequest req
-    maybeUpdated <- updateProductById productId (toProductUpdate req)
+    let prodUpdate = fromJust (toProductUpdate req) -- this should never fail because of the validation above, but should be refactored out
+    maybeUpdated <- updateProductById productId prodUpdate
     case maybeUpdated of
         Just updatedProduct -> pure (ApiResponse (toDTO updatedProduct))
         Nothing -> throw (ProductNotFound productId)
@@ -48,16 +55,16 @@ validateCreateProductRequest :: Member (Error AppError) r => CreateProductReques
 validateCreateProductRequest req
     | null (trim (createProductTitle req)) =
         throw (InvalidInput (Just "title") "title must not be blank")
-    | createProductPrice req < 0.01 =
-        throw (InvalidInput (Just "price") "price must be >= 0.01")
+    | createProductPrice req <= 0 =
+        throw (InvalidInput (Just "price") "price must be > 0")
     | otherwise = pure ()
 
 validateUpdateProductRequest :: Member (Error AppError) r => UpdateProductRequest -> Sem r ()
 validateUpdateProductRequest req
     | null (trim (updateProductTitle req)) =
         throw (InvalidInput (Just "title") "title must not be blank")
-    | updateProductPrice req < 0.01 =
-        throw (InvalidInput (Just "price") "price must be >= 0.01")
+    | updateProductPrice req <= 0 =
+        throw (InvalidInput (Just "price") "price must be > 0")
     | otherwise = pure ()
 
 trim :: String -> String
