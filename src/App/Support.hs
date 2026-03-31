@@ -63,7 +63,9 @@ roundValTo n val
     | n < 0   = Nothing
     | otherwise =
         let factor = 10 ^ n :: Integer
-            scaled = val * fromInteger factor
+            maxVal = 9999999999.99 :: Scientific  -- matches sqltype=numeric(12,2)
+            capped = min val maxVal
+            scaled = capped * fromInteger factor
             roundedInt = floor (scaled + 0.5)
             rounded = fromInteger roundedInt / fromInteger factor
         in Just (Money rounded)
