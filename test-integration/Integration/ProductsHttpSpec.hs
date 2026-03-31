@@ -6,12 +6,37 @@ module Integration.ProductsHttpSpec
 
 import Network.HTTP.Types (hContentType, methodDelete, methodGet, methodPost, methodPut)
 import Test.Hspec (Spec, describe, it)
-import Test.Hspec.Wai (request, shouldRespondWith, with)
+import Test.Hspec.Wai (request, shouldRespondWith, with, get, post, ResponseMatcher (..))
 
 import Integration.Support (mkIntegrationApp)
 
+import Test.Hspec.Wai.Matcher ((<:>), MatchBody(..))
+import qualified Data.ByteString.Lazy as LBS
+import Data.List (isInfixOf)
+
 spec :: Spec
 spec = with mkIntegrationApp $ do
+    let bodyContainsAll :: [LBS.ByteString] -> MatchBody
+        bodyContainsAll substrs = MatchBody $ \_ body ->
+            let bodyStr = LBS.unpack body
+            in if all (\s -> isInfixOf (LBS.unpack s) bodyStr) substrs
+                then Nothing
+                else Just "Not all expected substrings found in body"
+
+    describe "RFC 7807 error format" $ do
+        it "returns RFC 7807 error for bad path (404)" $ do
+            get "/not-a-real-path" `shouldRespondWith` "" { matchStatus = 404
+                , matchHeaders = ["Content-Type" <:> "application/problem+json"]
+                , matchBody = bodyContainsAll ["type","title","status","detail","instance"]
+                }
+
+        it "returns RFC 7807 error for malformed JSON (400)" $ do
+            request methodPost "/products" [("Content-Type", "application/json")] "{invalid" `shouldRespondWith`
+                "" { matchStatus = 400
+                   , matchHeaders = ["Content-Type" <:> "application/problem+json"]
+                   , matchBody = bodyContainsAll ["type","title","status","detail","instance"]
+                   }
+
     describe "GET /products" $ do
         it "responds with 200" $ do
             request methodGet "/products" [] "" `shouldRespondWith` 200
