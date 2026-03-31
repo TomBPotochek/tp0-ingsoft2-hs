@@ -64,10 +64,13 @@ Y puedes descargarlas manualmente con ghcup ejecutando en tu terminal `ghcup tui
 `make local-build` y los targets de docs primero ejecutan `local-bootstrap`, que asegura que
 `polysemy-plugin` esté instalado en el snapshot local.
 
+### docs
+se puede ver el esquema de la api levantando el servidor y llamando al endpoint `/openapi.json`
+
 ## desafíos
 
 ### middleware
-?
+para logging the llamadas a endpoints
 
 ### mejoras?
 * Los campos internos de los objetos de dominio podrian no exportarse y en vez de eso exportar un patron unidireccional que permite inspeccionar los campos pero no construir un objeto de dominio a partir de las partes, ya que eso puede violar invariantes.
