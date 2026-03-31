@@ -22,6 +22,8 @@ import GHC.Generics (Generic)
 
 import Domain.CartItem (CartItem(..))
 import API.DTO.Support (dropPrefixFromFields)
+import Data.Scientific (Scientific)
+import App.Support (Money, pattern ViewMoney)
 
 data AddCartRequest = AddCartRequest
     { addCartProductId :: Int
@@ -40,7 +42,7 @@ data CartItemDTO = CartItemDTO
     { id :: Int
     , productId :: Int
     , title :: String
-    , unitPrice :: Double
+    , unitPrice :: Scientific
     , addedAt :: UTCTime
     }
     deriving (Show, Eq, Generic)
@@ -52,7 +54,7 @@ instance ToSchema CartItemDTO
 data CartDTO = CartDTO
     { userId :: Int
     , items :: [CartItemDTO]
-    , totalPrice :: Double
+    , totalPrice :: Scientific
     }
     deriving (Show, Eq, Generic)
 
@@ -77,10 +79,12 @@ toDTO domainItem =
         , addedAt = cartItemAddedAt domainItem
         }
 
-toCartDTO :: Int -> Double -> [CartItem] -> CartDTO
+toCartDTO :: Int -> Money -> [CartItem] -> CartDTO
 toCartDTO cartUserId total cartItems =
     CartDTO
         { userId = cartUserId
         , items = map toDTO cartItems
-        , totalPrice = total
+        , totalPrice = totalSum
         }
+    where
+        ViewMoney totalSum = total 

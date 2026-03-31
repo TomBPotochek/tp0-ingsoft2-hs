@@ -17,14 +17,14 @@ import Data.Aeson
     , genericParseJSON
     , genericToJSON
     )
-import Data.Scientific (fromFloatDigits)
+import Data.Scientific ( Scientific)
 import Data.OpenApi (ToSchema)
 import Data.Time (UTCTime)
 import GHC.Generics (Generic)
 
 import App.ProductCreation (NewProduct (..))
 import qualified App.ProductUpdate as ProductUpdate
-import App.Support (pattern ViewMoney, moneyFromDouble)
+import App.Support (pattern ViewMoney, moneyFromScientific)
 import Domain.Product (Product(..))
 import API.DTO.Support (dropPrefixFromFields)
 
@@ -33,7 +33,7 @@ data ProductDTO = ProductDTO
     , sellerId :: Int
     , title :: String
     , description :: String
-    , price :: Double
+    , price :: Scientific
     , createdAt :: UTCTime
     , updatedAt :: UTCTime
     }
@@ -47,7 +47,7 @@ data CreateProductRequest = CreateProductRequest
     { createProductSellerId :: Int
     , createProductTitle :: String
     , createProductDescription :: String
-    , createProductPrice :: Double
+    , createProductPrice :: Scientific
     }
     deriving (Show, Eq, Generic)
 
@@ -62,7 +62,7 @@ instance ToSchema CreateProductRequest
 data UpdateProductRequest = UpdateProductRequest
     { updateProductTitle :: String
     , updateProductDescription :: String
-    , updateProductPrice :: Double
+    , updateProductPrice :: Scientific
     }
     deriving (Show, Eq, Generic)
 
@@ -90,7 +90,7 @@ dropUpdateProductPrefix = dropPrefixFromFields "updateProduct"
 
 toNewProduct :: CreateProductRequest -> Maybe NewProduct
 toNewProduct input = do
-    price <- moneyFromDouble (createProductPrice input)
+    price <- moneyFromScientific (createProductPrice input)
     return $ NewProduct
         { sellerId = createProductSellerId input
         , title = createProductTitle input
@@ -100,7 +100,7 @@ toNewProduct input = do
 
 toProductUpdate :: UpdateProductRequest -> Maybe ProductUpdate.ProductUpdate
 toProductUpdate input = do
-    price <- moneyFromDouble (updateProductPrice input)
+    price <- moneyFromScientific (updateProductPrice input)
     return $ ProductUpdate.ProductUpdate
         (updateProductTitle input)
         (updateProductDescription input)

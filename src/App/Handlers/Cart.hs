@@ -17,7 +17,7 @@ import Polysemy.Error (Error, throw)
 getCartHandler :: Members '[CartRepository] r => Int -> Sem r (ApiResponse CartDTO)
 getCartHandler userId = do
     cartItems <- getCartByUserId userId
-    let total = realToFrac $ sum (map cartItemUnitPrice cartItems)
+    let total = sum (map cartItemUnitPrice cartItems)
     pure (ApiResponse (toCartDTO userId total cartItems))
 
 deleteCartHandler :: Members '[CartRepository] r => Int -> Sem r NoContent

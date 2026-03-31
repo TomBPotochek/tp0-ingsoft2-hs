@@ -3,62 +3,57 @@ module App.SupportSpec (spec) where
 import App.Support (roundValTo, pattern ViewMoney)
 import Test.Hspec
 import Test.QuickCheck
-import Data.Maybe (fromJust)
+import Data.Scientific (Scientific)
 
 spec :: Spec
 spec = describe "roundValTo" $ do
-    it "rounds to n decimal places (property)" $ property $ \(NonNegative d) (NonNegative n') ->
-        let n = n' `mod` 6  -- limit to reasonable decimal places
-            val = d / 1000000  -- keep values small
-            result = roundValTo n val
-        in case result of
-            Nothing -> val < 0
-            Just (ViewMoney s) ->
-                let str = show (fromRational (toRational s) :: Double)
-                    afterDot = dropWhile (/= '.') str
-                in n == 0 || length (drop 1 afterDot) <= n
-
-
-    it "matches round half up for 2 decimals (diagnostic)" $ 
-        forAll (choose (0, 10000 :: Double)) $ \x ->
-            let expected =
-                    let str = showFFloat3 x
-                        (whole, frac) = break (=='.') str
-                        fracDigits = take 3 $ drop 1 frac ++ repeat '0'
-                        d2 = read (take 2 fracDigits) :: Int
-                        d3 = read [fracDigits !! 2] :: Int
-                        up = if d3 >= 5 then 1 else 0
-                        rounded =
-                            fromIntegral (read whole :: Int) + (fromIntegral (d2 + up)) / 100
-                    in rounded
-                result = roundValTo 2 x
-                actual = fmap (\(ViewMoney s) -> fromRational (toRational s) :: Double) result
-            in counterexample (
-                "Input:    " ++ show x ++
-                "\nExpected (half up): " ++ show expected ++
-                "\nActual:   " ++ show actual ++
-                "\nRaw result: " ++ show result
-            ) (actual == Just expected)
+    it "rounds correctly to 2 decimals (half up, QuickCheck)" $ 
+        property $ \(Positive (base :: Integer)) (centsRaw :: Int) (thirdDigitRaw :: Int) ->
+            let cents = abs centsRaw `mod` 100
+                thirdDigit = abs thirdDigitRaw `mod` 10
+                -- Calculate expected cents after rounding
+                (finalBase, finalCents) =
+                  if thirdDigit >= 5
+                  then let newCents = cents + 1
+                       in if newCents == 100 then (base + 1, 0) else (base, newCents)
+                  else (base, cents)
+                expected = read (show finalBase ++ "." ++ (if finalCents < 10 then "0" else "") ++ show finalCents) :: Scientific
+                inputStr = show base ++ "." ++ (if cents < 10 then "0" else "") ++ show cents ++ show thirdDigit
+                input = read inputStr :: Scientific
+                actual = fmap (\(ViewMoney s) -> s) (roundValTo 2 input)
+            in actual == Just expected
 
     it "returns Nothing for negative input" $ do
         roundValTo 2 (-1.0) `shouldBe` Nothing
         roundValTo 0 (-0.01) `shouldBe` Nothing
 
+    it "rounds known edge cases (half up)" $ do
+        let cases =
+                [ (80.115, 2, 80.12)
+                , (80.125, 2, 80.13)
+                , (80.135, 2, 80.14)
+                , (80.145, 2, 80.15)
+                , (80.105, 2, 80.11)
+                , (80.155, 2, 80.16)
+                , (10.005, 2, 10.01)
+                , (10.015, 2, 10.02)
+                , (10.025, 2, 10.03)
+                , (10.035, 2, 10.04)
+                , (10.045, 2, 10.05)
+                , (10.055, 2, 10.06)
+                , (10.065, 2, 10.07)
+                , (10.075, 2, 10.08)
+                , (10.085, 2, 10.09)
+                , (10.095, 2, 10.10)
+                ]
+        mapM_ (\(input, n, expected) ->
+            let actual = fmap (\(ViewMoney s) -> s) (roundValTo n (input :: Scientific))
+            in actual `shouldBe` Just (expected :: Scientific)
+            ) cases
 
--- Helper for fixed-point string formatting
-showFFloat3 :: Double -> String
-showFFloat3 v =
-    let str = show (fromRational (toRational v) :: Double)
-        (whole, frac) = break (=='.') str
-        fracDigits = take 3 $ drop 1 frac ++ repeat '0'
-    in whole ++ "." ++ fracDigits
-      where
-        showFFloat :: Maybe Int -> Double -> String -> String
-        showFFloat (Just n) v s =
-            let str = show (fromRational (toRational v) :: Double)
-                (whole, frac) = break (=='.') str
-                fracDigits = take n $ drop 1 frac ++ repeat '0'
-            in whole ++ "." ++ fracDigits ++ s
-        showFFloat Nothing v s = show v ++ s
 
-
+genPair :: Gen (Integer, Integer)
+genPair = do
+    num <- choose (0, 10_000_000 :: Integer)
+    denom_exponent <- elements [2, 3, 4, 5, 6]
+    return (num, denom_exponent)
