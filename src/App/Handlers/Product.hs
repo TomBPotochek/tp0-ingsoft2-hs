@@ -55,16 +55,16 @@ validateCreateProductRequest :: Member (Error AppError) r => CreateProductReques
 validateCreateProductRequest req
     | null (trim (createProductTitle req)) =
         throw (InvalidInput (Just "title") "title must not be blank")
-    | createProductPrice req <= 0 =
-        throw (InvalidInput (Just "price") "price must be > 0")
+    | createProductPrice req < 0.01 =
+        throw (InvalidInput (Just "price") "price must be >= 0.01")
     | otherwise = pure ()
 
 validateUpdateProductRequest :: Member (Error AppError) r => UpdateProductRequest -> Sem r ()
 validateUpdateProductRequest req
     | null (trim (updateProductTitle req)) =
         throw (InvalidInput (Just "title") "title must not be blank")
-    | updateProductPrice req <= 0 =
-        throw (InvalidInput (Just "price") "price must be > 0")
+    | updateProductPrice req < 0.01 =
+        throw (InvalidInput (Just "price") "price must be >= 0.01")
     | otherwise = pure ()
 
 trim :: String -> String

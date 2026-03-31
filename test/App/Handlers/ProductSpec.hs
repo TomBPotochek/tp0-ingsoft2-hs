@@ -46,7 +46,7 @@ spec = do
                     }
                 (result, finalState) = runWithInMemoryRepo emptyRepoState (createProductHandler request)
 
-            result `shouldBe` Left (InvalidInput (Just "price") "price must be > 0")
+            result `shouldBe` Left (InvalidInput (Just "price") "price must be >= 0.01")
             repoCalls finalState `shouldBe` 0
 
         it "accepts prices with more than 2 decimals and rounds them" $ do
@@ -84,7 +84,7 @@ spec = do
                     }
                 (result, finalState) = runWithInMemoryRepo seededRepoState (updateProductByIdHandler 1 request)
 
-            result `shouldBe` Left (InvalidInput (Just "price") "price must be > 0")
+            result `shouldBe` Left (InvalidInput (Just "price") "price must be >= 0.01")
             repoCalls finalState `shouldBe` 0
 
         it "accepts update prices with more than 2 decimals and rounds them" $ do
